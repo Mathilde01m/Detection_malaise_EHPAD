@@ -1,0 +1,40 @@
+services:
+  mqtt-broker:
+    image: eclipse-mosquitto:latest
+    container_name: mqtt_broker
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  redis-cache:
+    image: redis:alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+
+  backend-ia:
+    build: ./backend_ia
+    container_name: backend_ia
+    depends_on:
+      - mqtt-broker
+      - redis-cache
+
+  ollama:
+    image: ollama/ollama
+    container_name: ollama_llm
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama_data:/root/.ollama
+
+  simulator:
+    build: ./simulator
+    container_name: ehpad_simulator
+    depends_on:
+      - mqtt-broker
+    volumes:
+      - ./data:/app/data
+
+
