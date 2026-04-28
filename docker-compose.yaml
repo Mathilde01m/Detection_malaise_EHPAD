@@ -1,4 +1,5 @@
 services:
+
   mqtt-broker:
     image: eclipse-mosquitto:latest
     container_name: mqtt_broker
@@ -17,7 +18,8 @@ services:
     restart: unless-stopped
 
   backend-ia:
-    build: ./backend_IA  # Correction du nom de dossier
+    build: ./backend_IA  
+    platform: linux/amd64
     container_name: backend_ia
     depends_on:
       - mqtt-broker
