@@ -1,0 +1,41 @@
+resident_id,age,pathologie,mobilite,risque_principal,frequence_cardiaque_bpm,spo2_%,tension_arterielle,temperature_c,glycemie_mg_dl
+R1,92,Alzheimer,marche,fugue nocturne,83,95,110/73,36.4,88
+R2,87,Alzheimer,fauteuil,désorientation,62,99,112/83,36.6,81
+R3,90,Alzheimer,marche,errance,82,96,126/84,36.2,92
+R4,85,Alzheimer,autonome,sortie chambre,85,99,123/72,36.6,97
+R5,94,Démence sévère,lit/fauteuil,chute,66,96,132/78,36.5,89
+R6,88,Alzheimer,marche,confusion,87,97,113/67,36.6,102
+R7,91,Alzheimer,marchette,fugue,63,99,118/66,36.9,114
+R8,86,Démence,fauteuil,agitation,88,95,127/74,37.0,119
+R9,95,Alzheimer,lit,immobilité,84,99,116/67,36.2,94
+R10,89,Démence,marche,errance,80,95,117/68,36.6,109
+R11,84,Parkinson,marchette,chute,71,96,121/76,36.4,97
+R12,90,Fracture hanche,fauteuil,immobilité,82,95,129/85,36.4,95
+R13,87,Arthrose sévère,canne,chute,65,98,122/73,37.2,120
+R14,93,Ostéoporose,marchette,fracture,82,99,117/75,37.0,83
+R15,88,AVC ancien,fauteuil,chute,67,95,135/75,36.6,84
+R16,86,Parkinson,marche,chute,66,99,132/75,36.4,111
+R17,91,Faiblesse musculaire,marchette,malaise,72,98,114/73,36.3,115
+R18,89,Rééducation motrice,canne,chute,77,97,133/83,36.6,117
+R19,82,Insuffisance cardiaque,autonome,malaise cardiaque,103,97,101/62,36.7,85
+R20,87,Hypertension,autonome,AVC,79,96,154/88,36.8,104
+R21,90,Antécédent infarctus,marche,malaise,103,99,129/96,36.9,114
+R22,85,Arythmie,autonome,perte connaissance,101,95,128/87,36.4,80
+R23,93,Insuffisance cardiaque,fauteuil,malaise,108,96,159/93,37.1,99
+R24,88,AVC ancien,canne,chute,66,96,121/70,36.7,113
+R25,84,Hypotension,autonome,syncope,108,99,134/70,36.2,103
+R26,86,Diabète type 2,autonome,hypoglycémie,61,96,128/67,36.3,82
+R27,91,Diabète,marchette,malaise,84,99,134/69,36.3,205
+R28,89,Diabète + obésité,fauteuil,fatigue,65,97,126/84,36.6,203
+R29,83,Diabète insuliné,autonome,hypo,84,96,132/74,36.6,177
+R30,92,Diabète,canne,malaise,76,98,113/72,36.4,70
+R31,87,BPCO,autonome,baisse SpO2,78,88,117/83,36.4,84
+R32,90,Insuffisance respiratoire,fauteuil,détresse respi,67,92,111/75,36.3,95
+R33,85,Asthme sévère,autonome,crise,81,95,116/82,36.3,116
+R34,93,BPCO,marchette,saturation basse,67,94,135/78,36.4,86
+R35,88,Pneumopathie chronique,lit/fauteuil,détresse,71,89,123/79,37.1,83
+R36,81,Stable,autonome,faible,61,98,133/75,37.0,86
+R37,84,Stable,autonome,faible,67,96,116/82,36.6,107
+R38,86,Stable,canne,faible,65,97,124/72,37.1,84
+R39,89,Stable,marchette,faible,74,99,113/66,36.9,114
+R40,92,Stable,fauteuil,faible,60,95,134/72,36.4,111
