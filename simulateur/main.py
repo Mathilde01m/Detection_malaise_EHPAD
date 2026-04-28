@@ -11,7 +11,7 @@ from simulateur.scenario import apply_scenario
 
 CSV_PATH = "data/données_résidents_ephad.csv"
 
-MQTT_BROKER_HOST = "localhost"
+MQTT_BROKER_HOST = "mqtt-broker"
 MQTT_BROKER_PORT = 1883
 MQTT_QOS = 1
 
