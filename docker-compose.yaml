@@ -7,19 +7,22 @@ services:
       - "9001:9001"
     volumes:
       - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    restart: unless-stopped
 
   redis-cache:
     image: redis:alpine
     container_name: redis_cache
     ports:
       - "6379:6379"
+    restart: unless-stopped
 
   backend-ia:
-    build: ./backend_ia
+    build: ./backend_IA  # Correction du nom de dossier
     container_name: backend_ia
     depends_on:
       - mqtt-broker
       - redis-cache
+    restart: on-failure
 
   ollama:
     image: ollama/ollama
@@ -28,13 +31,22 @@ services:
       - "11434:11434"
     volumes:
       - ./ollama_data:/root/.ollama
+    restart: unless-stopped
 
-  simulator:
-    build: ./simulator
-    container_name: ehpad_simulator
+  simulateur-vitaux:
+    build: ./simulateur  # Correction du nom de dossier
+    container_name: ehpad_simulator_vitaux
     depends_on:
       - mqtt-broker
     volumes:
       - ./data:/app/data
+    restart: on-failure
 
-
+  simulateur-capteurs:
+    build: ./capteurs    # Ajout du service manquant
+    container_name: ehpad_simulator_capteurs
+    depends_on:
+      - mqtt-broker
+    volumes:
+      - ./data:/app/data
+    restart: on-failure
