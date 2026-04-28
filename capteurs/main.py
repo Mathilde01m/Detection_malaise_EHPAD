@@ -8,7 +8,7 @@ from capteurs.sensor_generator import generate_environment_data
 
 ROOMS_PATH = "data/rooms_mapping.csv"
 
-MQTT_BROKER_HOST = "localhost"
+MQTT_BROKER_HOST = "mqtt-broker"
 MQTT_BROKER_PORT = 1883
 MQTT_QOS = 1
 
