@@ -8,12 +8,13 @@ from simulateur.resident_loader import load_residents
 from simulateur.vitals_generator import generate_normal_variation
 from simulateur.scenario import apply_scenario
 
-
 CSV_PATH = "data/données_résidents_ephad.csv"
 
-MQTT_BROKER_HOST = "localhost"
+# --- CORRECTIONS ICI ---
+MQTT_BROKER_HOST = "mqtt-broker"  # Le nom du service Docker !
 MQTT_BROKER_PORT = 1883
-MQTT_QOS = 1
+MQTT_QOS = 0  # QoS 0 pour alléger le réseau MQTT (Scalabilité)
+# -----------------------
 
 
 def build_topic(resident_id: str) -> str:
@@ -29,11 +30,26 @@ def main():
     residents = load_residents(CSV_PATH)
 
     client = mqtt.Client()
-    client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, 60)
+    
+    # --- CORRECTIONS ICI : Boucle de reconnexion (Patience) ---
+    connected = False
+    while not connected:
+        try:
+            print(f"Tentative de connexion à {MQTT_BROKER_HOST}:{MQTT_BROKER_PORT}...")
+            client.connect(MQTT_BROKER_HOST, MQTT_BROKER_PORT, 60)
+            connected = True
+            print("[Simulateur Vitaux] Connexion MQTT réussie !")
+        except ConnectionRefusedError:
+            print("[Simulateur Vitaux] Broker MQTT non prêt. Nouvelle tentative dans 2 secondes...")
+            time.sleep(2)
+        except Exception as e:
+            print(f"[Simulateur Vitaux] Erreur réseau : {e}. Nouvelle tentative...")
+            time.sleep(2)
+    # ----------------------------------------------------------
+
     client.loop_start()
 
     print(f"{len(residents)} résidents chargés depuis {CSV_PATH}")
-    print(f"Connexion MQTT : {MQTT_BROKER_HOST}:{MQTT_BROKER_PORT}")
 
     tick = 0
 

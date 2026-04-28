@@ -2,15 +2,18 @@ import time
 import json
 import paho.mqtt.client as mqtt
 
+
 from capteurs.room_loader import load_rooms
 from capteurs.sensor_generator import generate_environment_data
 
 
 ROOMS_PATH = "data/rooms_mapping.csv"
 
-MQTT_BROKER_HOST = "localhost"
+# --- CORRECTIONS ICI ---
+MQTT_BROKER_HOST = "mqtt-broker"  # Le nom du service Docker !
 MQTT_BROKER_PORT = 1883
-MQTT_QOS = 1
+MQTT_QOS = 1  # QoS 1 pour garantir la livraison des messages (Fiabilité)
+# -----------------------
 
 
 def build_topic(resident_id: str) -> str:
