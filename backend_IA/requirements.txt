@@ -1,0 +1,8 @@
+paho-mqtt==2.0.0
+redis
+pandas
+scikit-learn
+joblib
+numpy
+tensorflow-cpu
+requests
