@@ -31,19 +31,13 @@ class EHPAD_AI_Engine:
         return self.rf_fall.predict(features)[0]
 
     def predict_vitals_risk(self, history):
-        # Modèle non chargé → pas de prédiction LSTM
         if not hasattr(self, 'lstm_vitals'):
             return 0
-        # Historique doit contenir 10 éléments
         if len(history) < 10:
             return 0
-
-        # Transformation en tenseur 3D pour le LSTM : (1, 10, 2)
         seq = [[v.get('heart_rate', v.get('hr', 0)), v.get('spo2', 0)] for v in history]
         features = np.array([seq], dtype=np.float32)
-
         prediction = self.lstm_vitals.predict(features, verbose=0)[0][0]
-        # Si probabilité > 70%, on déclenche l'alerte
         return 1 if prediction > 0.7 else 0
 
 # Instance globale

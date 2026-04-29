@@ -27,8 +27,6 @@
     <div class="sb-nav">
       <button class="sb-btn active" onclick="setNav(this,'grid')" title="Grille Patients">⊞</button>
       <button class="sb-btn" onclick="setNav(this,'map')" title="Plan de l'établissement">☖</button>
-      <button class="sb-btn" onclick="setNav(this,'alerts')" title="Alertes">◉</button>
-      <button class="sb-btn" onclick="setNav(this,'stats')" title="Stats">▦</button>
     </div>
     <div class="sb-avatar" id="user-init">DR</div>
   </aside>
@@ -58,78 +56,100 @@
       <div class="grid" id="grid"></div>
     </div>
 
-    <div id="view-map" style="display:none; padding: 20px;">
+    <div id="view-map" style="display:none; padding:20px;">
       <div class="section-label">PLAN TECHNIQUE — SECTEURS A, B, C, D</div>
-      <div class="map-container" style="position:relative; background:var(--surface); border-radius:8px; padding:16px; border:1px solid var(--border); overflow:hidden;">
-        
-        <svg viewBox="0 0 1000 600" id="ehpad-map" style="width:100%; height:auto; max-height: 70vh;">
-          <circle cx="500" cy="300" r="50" fill="rgba(0,229,160,0.1)" stroke="var(--accent)" stroke-width="2"/>
-          <text x="500" y="305" fill="var(--accent)" text-anchor="middle" font-size="12" font-weight="bold" font-family="var(--mono)">POSTE</text>
+      <div class="map-container">
 
+        <svg viewBox="0 0 1000 600" id="ehpad-map" style="width:100%; height:auto; max-height:70vh;">
+
+          <!-- Poste infirmier central -->
+          <circle cx="500" cy="300" r="50" fill="rgba(0,229,160,0.1)" stroke="var(--accent)" stroke-width="2"/>
+          <text x="500" y="305" fill="var(--accent)" text-anchor="middle" font-size="12" font-weight="bold" font-family="monospace">POSTE</text>
+
+          <!-- Couloirs -->
+          <line x1="500" y1="250" x2="500" y2="170" stroke="var(--border)" stroke-width="4"/>
+          <line x1="500" y1="350" x2="500" y2="430" stroke="var(--border)" stroke-width="4"/>
+          <line x1="450" y1="300" x2="300" y2="300" stroke="var(--border)" stroke-width="4"/>
+          <line x1="550" y1="300" x2="700" y2="300" stroke="var(--border)" stroke-width="4"/>
+
+          <!-- PAVILLON NORD (101-110) -->
           <g transform="translate(300, 20)">
             <rect width="400" height="150" rx="8" fill="rgba(0,229,160,0.03)" stroke="rgba(0,229,160,0.3)" stroke-width="2"/>
-            <text x="200" y="25" fill="var(--accent)" text-anchor="middle" font-size="14" font-weight="bold" font-family="var(--mono)" letter-spacing="2">PAVILLON NORD</text>
-            <g id="room-101" class="map-room" onclick="selectRoom('101')"><rect x="30" y="45" width="55" height="35" rx="4"/><text x="57" y="67" fill="var(--text)" text-anchor="middle" font-size="12">101</text></g>
-            <g id="room-102" class="map-room" onclick="selectRoom('102')"><rect x="100" y="45" width="55" height="35" rx="4"/><text x="127" y="67" fill="var(--text)" text-anchor="middle" font-size="12">102</text></g>
-            <g id="room-103" class="map-room" onclick="selectRoom('103')"><rect x="170" y="45" width="55" height="35" rx="4"/><text x="197" y="67" fill="var(--text)" text-anchor="middle" font-size="12">103</text></g>
-            <g id="room-104" class="map-room" onclick="selectRoom('104')"><rect x="240" y="45" width="55" height="35" rx="4"/><text x="267" y="67" fill="var(--text)" text-anchor="middle" font-size="12">104</text></g>
-            <g id="room-105" class="map-room" onclick="selectRoom('105')"><rect x="310" y="45" width="55" height="35" rx="4"/><text x="337" y="67" fill="var(--text)" text-anchor="middle" font-size="12">105</text></g>
-            <g id="room-106" class="map-room" onclick="selectRoom('106')"><rect x="30" y="95" width="55" height="35" rx="4"/><text x="57" y="117" fill="var(--text)" text-anchor="middle" font-size="12">106</text></g>
-            <g id="room-107" class="map-room" onclick="selectRoom('107')"><rect x="100" y="95" width="55" height="35" rx="4"/><text x="127" y="117" fill="var(--text)" text-anchor="middle" font-size="12">107</text></g>
-            <g id="room-108" class="map-room" onclick="selectRoom('108')"><rect x="170" y="95" width="55" height="35" rx="4"/><text x="197" y="117" fill="var(--text)" text-anchor="middle" font-size="12">108</text></g>
-            <g id="room-109" class="map-room" onclick="selectRoom('109')"><rect x="240" y="95" width="55" height="35" rx="4"/><text x="267" y="117" fill="var(--text)" text-anchor="middle" font-size="12">109</text></g>
-            <g id="room-110" class="map-room" onclick="selectRoom('110')"><rect x="310" y="95" width="55" height="35" rx="4"/><text x="337" y="117" fill="var(--text)" text-anchor="middle" font-size="12">110</text></g>
+            <text x="200" y="25" fill="var(--accent)" text-anchor="middle" font-size="14" font-weight="bold" font-family="monospace" letter-spacing="2">PAVILLON NORD</text>
+            <g id="room-101" class="map-room map-stable" onclick="selectRoom('101')"><rect x="30"  y="45" width="55" height="35" rx="4"/><text x="57"  y="67" text-anchor="middle" font-size="11">101</text></g>
+            <g id="room-102" class="map-room map-stable" onclick="selectRoom('102')"><rect x="100" y="45" width="55" height="35" rx="4"/><text x="127" y="67" text-anchor="middle" font-size="11">102</text></g>
+            <g id="room-103" class="map-room map-stable" onclick="selectRoom('103')"><rect x="170" y="45" width="55" height="35" rx="4"/><text x="197" y="67" text-anchor="middle" font-size="11">103</text></g>
+            <g id="room-104" class="map-room map-stable" onclick="selectRoom('104')"><rect x="240" y="45" width="55" height="35" rx="4"/><text x="267" y="67" text-anchor="middle" font-size="11">104</text></g>
+            <g id="room-105" class="map-room map-stable" onclick="selectRoom('105')"><rect x="310" y="45" width="55" height="35" rx="4"/><text x="337" y="67" text-anchor="middle" font-size="11">105</text></g>
+            <g id="room-106" class="map-room map-stable" onclick="selectRoom('106')"><rect x="30"  y="95" width="55" height="35" rx="4"/><text x="57"  y="117" text-anchor="middle" font-size="11">106</text></g>
+            <g id="room-107" class="map-room map-stable" onclick="selectRoom('107')"><rect x="100" y="95" width="55" height="35" rx="4"/><text x="127" y="117" text-anchor="middle" font-size="11">107</text></g>
+            <g id="room-108" class="map-room map-stable" onclick="selectRoom('108')"><rect x="170" y="95" width="55" height="35" rx="4"/><text x="197" y="117" text-anchor="middle" font-size="11">108</text></g>
+            <g id="room-109" class="map-room map-stable" onclick="selectRoom('109')"><rect x="240" y="95" width="55" height="35" rx="4"/><text x="267" y="117" text-anchor="middle" font-size="11">109</text></g>
+            <g id="room-110" class="map-room map-stable" onclick="selectRoom('110')"><rect x="310" y="95" width="55" height="35" rx="4"/><text x="337" y="117" text-anchor="middle" font-size="11">110</text></g>
           </g>
 
+          <!-- PAVILLON SUD (201-210) -->
           <g transform="translate(300, 430)">
             <rect width="400" height="150" rx="8" fill="rgba(0,102,255,0.03)" stroke="rgba(0,102,255,0.3)" stroke-width="2"/>
-            <text x="200" y="140" fill="var(--accent2)" text-anchor="middle" font-size="14" font-weight="bold" font-family="var(--mono)" letter-spacing="2">PAVILLON SUD</text>
-            <g id="room-201" class="map-room" onclick="selectRoom('201')"><rect x="30" y="25" width="55" height="35" rx="4"/><text x="57" y="47" fill="var(--text)" text-anchor="middle" font-size="12">201</text></g>
-            <g id="room-202" class="map-room" onclick="selectRoom('202')"><rect x="100" y="25" width="55" height="35" rx="4"/><text x="127" y="47" fill="var(--text)" text-anchor="middle" font-size="12">202</text></g>
-            <g id="room-203" class="map-room" onclick="selectRoom('203')"><rect x="170" y="25" width="55" height="35" rx="4"/><text x="197" y="47" fill="var(--text)" text-anchor="middle" font-size="12">203</text></g>
-            <g id="room-204" class="map-room" onclick="selectRoom('204')"><rect x="240" y="25" width="55" height="35" rx="4"/><text x="267" y="47" fill="var(--text)" text-anchor="middle" font-size="12">204</text></g>
-            <g id="room-205" class="map-room" onclick="selectRoom('205')"><rect x="310" y="25" width="55" height="35" rx="4"/><text x="337" y="47" fill="var(--text)" text-anchor="middle" font-size="12">205</text></g>
-            <g id="room-206" class="map-room" onclick="selectRoom('206')"><rect x="30" y="75" width="55" height="35" rx="4"/><text x="57" y="97" fill="var(--text)" text-anchor="middle" font-size="12">206</text></g>
-            <g id="room-207" class="map-room" onclick="selectRoom('207')"><rect x="100" y="75" width="55" height="35" rx="4"/><text x="127" y="97" fill="var(--text)" text-anchor="middle" font-size="12">207</text></g>
-            <g id="room-208" class="map-room" onclick="selectRoom('208')"><rect x="170" y="75" width="55" height="35" rx="4"/><text x="197" y="97" fill="var(--text)" text-anchor="middle" font-size="12">208</text></g>
-            <g id="room-209" class="map-room" onclick="selectRoom('209')"><rect x="240" y="75" width="55" height="35" rx="4"/><text x="267" y="97" fill="var(--text)" text-anchor="middle" font-size="12">209</text></g>
-            <g id="room-210" class="map-room" onclick="selectRoom('210')"><rect x="310" y="75" width="55" height="35" rx="4"/><text x="337" y="97" fill="var(--text)" text-anchor="middle" font-size="12">210</text></g>
+            <text x="200" y="140" fill="var(--accent2)" text-anchor="middle" font-size="14" font-weight="bold" font-family="monospace" letter-spacing="2">PAVILLON SUD</text>
+            <g id="room-201" class="map-room map-stable" onclick="selectRoom('201')"><rect x="30"  y="25" width="55" height="35" rx="4"/><text x="57"  y="47" text-anchor="middle" font-size="11">201</text></g>
+            <g id="room-202" class="map-room map-stable" onclick="selectRoom('202')"><rect x="100" y="25" width="55" height="35" rx="4"/><text x="127" y="47" text-anchor="middle" font-size="11">202</text></g>
+            <g id="room-203" class="map-room map-stable" onclick="selectRoom('203')"><rect x="170" y="25" width="55" height="35" rx="4"/><text x="197" y="47" text-anchor="middle" font-size="11">203</text></g>
+            <g id="room-204" class="map-room map-stable" onclick="selectRoom('204')"><rect x="240" y="25" width="55" height="35" rx="4"/><text x="267" y="47" text-anchor="middle" font-size="11">204</text></g>
+            <g id="room-205" class="map-room map-stable" onclick="selectRoom('205')"><rect x="310" y="25" width="55" height="35" rx="4"/><text x="337" y="47" text-anchor="middle" font-size="11">205</text></g>
+            <g id="room-206" class="map-room map-stable" onclick="selectRoom('206')"><rect x="30"  y="75" width="55" height="35" rx="4"/><text x="57"  y="97" text-anchor="middle" font-size="11">206</text></g>
+            <g id="room-207" class="map-room map-stable" onclick="selectRoom('207')"><rect x="100" y="75" width="55" height="35" rx="4"/><text x="127" y="97" text-anchor="middle" font-size="11">207</text></g>
+            <g id="room-208" class="map-room map-stable" onclick="selectRoom('208')"><rect x="170" y="75" width="55" height="35" rx="4"/><text x="197" y="97" text-anchor="middle" font-size="11">208</text></g>
+            <g id="room-209" class="map-room map-stable" onclick="selectRoom('209')"><rect x="240" y="75" width="55" height="35" rx="4"/><text x="267" y="97" text-anchor="middle" font-size="11">209</text></g>
+            <g id="room-210" class="map-room map-stable" onclick="selectRoom('210')"><rect x="310" y="75" width="55" height="35" rx="4"/><text x="337" y="97" text-anchor="middle" font-size="11">210</text></g>
           </g>
 
-          <g transform="translate(750, 150)">
-            <rect width="200" height="300" rx="8" fill="rgba(255,159,10,0.03)" stroke="rgba(255,159,10,0.3)" stroke-width="2"/>
-            <text x="100" y="25" fill="var(--warn)" text-anchor="middle" font-size="14" font-weight="bold" font-family="var(--mono)" letter-spacing="2">PAV. EST</text>
-            <g id="room-301" class="map-room" onclick="selectRoom('301')"><rect x="35" y="50" width="55" height="35" rx="4"/><text x="62" y="72" fill="var(--text)" text-anchor="middle" font-size="12">301</text></g>
-            <g id="room-302" class="map-room" onclick="selectRoom('302')"><rect x="110" y="50" width="55" height="35" rx="4"/><text x="137" y="72" fill="var(--text)" text-anchor="middle" font-size="12">302</text></g>
-            <g id="room-303" class="map-room" onclick="selectRoom('303')"><rect x="35" y="110" width="55" height="35" rx="4"/><text x="62" y="132" fill="var(--text)" text-anchor="middle" font-size="12">303</text></g>
-            <g id="room-304" class="map-room" onclick="selectRoom('304')"><rect x="110" y="110" width="55" height="35" rx="4"/><text x="137" y="132" fill="var(--text)" text-anchor="middle" font-size="12">304</text></g>
-            <g id="room-305" class="map-room" onclick="selectRoom('305')"><rect x="35" y="170" width="55" height="35" rx="4"/><text x="62" y="192" fill="var(--text)" text-anchor="middle" font-size="12">305</text></g>
-            <g id="room-306" class="map-room" onclick="selectRoom('306')"><rect x="110" y="170" width="55" height="35" rx="4"/><text x="137" y="192" fill="var(--text)" text-anchor="middle" font-size="12">306</text></g>
+          <!-- PAVILLON EST (301-310) -->
+          <g transform="translate(750, 100)">
+            <rect width="210" height="400" rx="8" fill="rgba(255,159,10,0.03)" stroke="rgba(255,159,10,0.3)" stroke-width="2"/>
+            <text x="105" y="25" fill="var(--warn)" text-anchor="middle" font-size="14" font-weight="bold" font-family="monospace" letter-spacing="2">PAV. EST</text>
+            <g id="room-301" class="map-room map-stable" onclick="selectRoom('301')"><rect x="15"  y="40"  width="55" height="35" rx="4"/><text x="42"  y="62"  text-anchor="middle" font-size="11">301</text></g>
+            <g id="room-302" class="map-room map-stable" onclick="selectRoom('302')"><rect x="90"  y="40"  width="55" height="35" rx="4"/><text x="117" y="62"  text-anchor="middle" font-size="11">302</text></g>
+            <g id="room-303" class="map-room map-stable" onclick="selectRoom('303')"><rect x="15"  y="95"  width="55" height="35" rx="4"/><text x="42"  y="117" text-anchor="middle" font-size="11">303</text></g>
+            <g id="room-304" class="map-room map-stable" onclick="selectRoom('304')"><rect x="90"  y="95"  width="55" height="35" rx="4"/><text x="117" y="117" text-anchor="middle" font-size="11">304</text></g>
+            <g id="room-305" class="map-room map-stable" onclick="selectRoom('305')"><rect x="15"  y="150" width="55" height="35" rx="4"/><text x="42"  y="172" text-anchor="middle" font-size="11">305</text></g>
+            <g id="room-306" class="map-room map-stable" onclick="selectRoom('306')"><rect x="90"  y="150" width="55" height="35" rx="4"/><text x="117" y="172" text-anchor="middle" font-size="11">306</text></g>
+            <g id="room-307" class="map-room map-stable" onclick="selectRoom('307')"><rect x="15"  y="205" width="55" height="35" rx="4"/><text x="42"  y="227" text-anchor="middle" font-size="11">307</text></g>
+            <g id="room-308" class="map-room map-stable" onclick="selectRoom('308')"><rect x="90"  y="205" width="55" height="35" rx="4"/><text x="117" y="227" text-anchor="middle" font-size="11">308</text></g>
+            <g id="room-309" class="map-room map-stable" onclick="selectRoom('309')"><rect x="15"  y="260" width="55" height="35" rx="4"/><text x="42"  y="282" text-anchor="middle" font-size="11">309</text></g>
+            <g id="room-310" class="map-room map-stable" onclick="selectRoom('310')"><rect x="90"  y="260" width="55" height="35" rx="4"/><text x="117" y="282" text-anchor="middle" font-size="11">310</text></g>
           </g>
 
-          <g transform="translate(50, 150)">
-            <rect width="200" height="300" rx="8" fill="rgba(255,59,48,0.03)" stroke="rgba(255,59,48,0.3)" stroke-width="2"/>
-            <text x="100" y="25" fill="var(--danger)" text-anchor="middle" font-size="14" font-weight="bold" font-family="var(--mono)" letter-spacing="2">PAV. OUEST</text>
-            <g id="room-401" class="map-room" onclick="selectRoom('401')"><rect x="35" y="50" width="55" height="35" rx="4"/><text x="62" y="72" fill="var(--text)" text-anchor="middle" font-size="12">401</text></g>
-            <g id="room-402" class="map-room" onclick="selectRoom('402')"><rect x="110" y="50" width="55" height="35" rx="4"/><text x="137" y="72" fill="var(--text)" text-anchor="middle" font-size="12">402</text></g>
-            <g id="room-403" class="map-room" onclick="selectRoom('403')"><rect x="35" y="110" width="55" height="35" rx="4"/><text x="62" y="132" fill="var(--text)" text-anchor="middle" font-size="12">403</text></g>
-            <g id="room-404" class="map-room" onclick="selectRoom('404')"><rect x="110" y="110" width="55" height="35" rx="4"/><text x="137" y="132" fill="var(--text)" text-anchor="middle" font-size="12">404</text></g>
-            <g id="room-405" class="map-room" onclick="selectRoom('405')"><rect x="35" y="170" width="55" height="35" rx="4"/><text x="62" y="192" fill="var(--text)" text-anchor="middle" font-size="12">405</text></g>
-            <g id="room-406" class="map-room" onclick="selectRoom('406')"><rect x="110" y="170" width="55" height="35" rx="4"/><text x="137" y="192" fill="var(--text)" text-anchor="middle" font-size="12">406</text></g>
+          <!-- PAVILLON OUEST (401-410) -->
+          <g transform="translate(40, 100)">
+            <rect width="210" height="400" rx="8" fill="rgba(255,59,48,0.03)" stroke="rgba(255,59,48,0.3)" stroke-width="2"/>
+            <text x="105" y="25" fill="var(--danger)" text-anchor="middle" font-size="14" font-weight="bold" font-family="monospace" letter-spacing="2">PAV. OUEST</text>
+            <g id="room-401" class="map-room map-stable" onclick="selectRoom('401')"><rect x="15"  y="40"  width="55" height="35" rx="4"/><text x="42"  y="62"  text-anchor="middle" font-size="11">401</text></g>
+            <g id="room-402" class="map-room map-stable" onclick="selectRoom('402')"><rect x="90"  y="40"  width="55" height="35" rx="4"/><text x="117" y="62"  text-anchor="middle" font-size="11">402</text></g>
+            <g id="room-403" class="map-room map-stable" onclick="selectRoom('403')"><rect x="15"  y="95"  width="55" height="35" rx="4"/><text x="42"  y="117" text-anchor="middle" font-size="11">403</text></g>
+            <g id="room-404" class="map-room map-stable" onclick="selectRoom('404')"><rect x="90"  y="95"  width="55" height="35" rx="4"/><text x="117" y="117" text-anchor="middle" font-size="11">404</text></g>
+            <g id="room-405" class="map-room map-stable" onclick="selectRoom('405')"><rect x="15"  y="150" width="55" height="35" rx="4"/><text x="42"  y="172" text-anchor="middle" font-size="11">405</text></g>
+            <g id="room-406" class="map-room map-stable" onclick="selectRoom('406')"><rect x="90"  y="150" width="55" height="35" rx="4"/><text x="117" y="172" text-anchor="middle" font-size="11">406</text></g>
+            <g id="room-407" class="map-room map-stable" onclick="selectRoom('407')"><rect x="15"  y="205" width="55" height="35" rx="4"/><text x="42"  y="227" text-anchor="middle" font-size="11">407</text></g>
+            <g id="room-408" class="map-room map-stable" onclick="selectRoom('408')"><rect x="90"  y="205" width="55" height="35" rx="4"/><text x="117" y="227" text-anchor="middle" font-size="11">408</text></g>
+            <g id="room-409" class="map-room map-stable" onclick="selectRoom('409')"><rect x="15"  y="260" width="55" height="35" rx="4"/><text x="42"  y="282" text-anchor="middle" font-size="11">409</text></g>
+            <g id="room-410" class="map-room map-stable" onclick="selectRoom('410')"><rect x="90"  y="260" width="55" height="35" rx="4"/><text x="117" y="282" text-anchor="middle" font-size="11">410</text></g>
           </g>
+
         </svg>
 
-        <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:15px; font-size:10px; font-family:var(--mono);">
-          <span><i style="background:rgba(0,168,120,0.5); width:10px; height:10px; display:inline-block; border-radius:2px; margin-right:5px;"></i>STABLE</span>
-          <span><i style="background:rgba(253,126,20,0.6); width:10px; height:10px; display:inline-block; border-radius:2px; margin-right:5px;"></i>URGENT</span>
-          <span><i style="background:var(--danger); width:10px; height:10px; display:inline-block; border-radius:2px; margin-right:5px;"></i>CRITIQUE</span>
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot stable"></div>STABLE</div>
+          <div class="legend-item"><div class="legend-dot urgent"></div>URGENT</div>
+          <div class="legend-item"><div class="legend-dot critical"></div>CRITIQUE (clignote)</div>
         </div>
       </div>
     </div>
+
   </div>
 </div>
 
-<div class="panel-mask" id="mask" onclick="closePanel()"></div>
+<div class="panel-mask" id="mask" onclick="tryClosePanel()"></div>
 
 <div class="panel" id="panel">
   <div class="panel-top">
@@ -138,7 +158,7 @@
       <div class="panel-name" id="p-name">—</div>
       <span id="p-tag" class="pcard-tag">—</span>
     </div>
-    <button class="panel-close" onclick="closePanel()">✕</button>
+    <button class="panel-close" onclick="tryClosePanel()">✕</button>
   </div>
   <div class="panel-body">
     <div>
@@ -150,23 +170,24 @@
         <div class="vital-box"><div class="vb-label">TEMP.</div><div class="vb-val" id="v-tmp">—<span class="vb-unit">°C</span></div></div>
       </div>
     </div>
-
     <div>
       <div class="section-label">INFORMATIONS</div>
-      <div class="info-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="info-grid">
         <div class="info-box"><div class="ib-label">CHAMBRE</div><div class="ib-val" id="p-room-info">—</div></div>
-        <div class="info-box"><div class="ib-label">MÉDECIN / RÉFÉRENT</div><div class="ib-val" id="p-doc">—</div></div>
+        <div class="info-box"><div class="ib-label">MÉDECIN RÉFÉRENT</div><div class="ib-val" id="p-doc">—</div></div>
       </div>
     </div>
-
     <div class="notes-section">
       <div class="section-label">HISTORIQUE DES OBSERVATIONS</div>
-      <div id="chat-history" style="background: var(--bg); border: 1px solid var(--border); border-radius: 4px; height: 180px; overflow-y: auto; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
-      <textarea id="note" placeholder="Saisir une nouvelle observation..." style="height: 60px;"></textarea>
+      <div id="chat-history" style="background:var(--bg); border:1px solid var(--border); border-radius:4px; height:180px; overflow-y:auto; padding:10px; margin-bottom:10px; display:flex; flex-direction:column; gap:8px;"></div>
+      <textarea id="note" placeholder="Saisir une observation... ↵ Entrée pour valider"></textarea>
     </div>
   </div>
+  <div id="panel-warning" class="panel-warning" style="display:none;">
+    ⚠️ Prise en charge obligatoire — une note écrite est requise avant de fermer.
+  </div>
   <div class="panel-footer">
-    <button class="action-btn btn-secondary" onclick="closePanel()">FERMER</button>
+    <button class="action-btn btn-secondary" onclick="tryClosePanel()">FERMER</button>
     <button class="action-btn btn-primary" onclick="saveIntervention()">VALIDER INTERVENTION</button>
   </div>
 </div>
