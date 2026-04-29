@@ -68,13 +68,13 @@ services:
     restart: on-failure
 
   fastapi:
-  build: ./api
-  container_name: ehpad_fastapi
-  ports:
-    - "8000:8000"
-  depends_on:
-    - postgres
-  restart: unless-stopped
+    build: ./api
+    container_name: ehpad_fastapi
+    ports:
+      "8000:8000"
+    depends_on:
+      postgres
+    restart: unless-stopped
 
   postgres:
     image: postgres:16
@@ -94,11 +94,4 @@ services:
       - ./database/04_views.sql:/docker-entrypoint-initdb.d/04_views.sql
       - ./data:/data
 
-fastapi:
-    build: ./api
-    container_name: ehpad_fastapi
-    ports:
-      - "8000:8000"
-    depends_on:
-      - postgres
-    restart: unless-stopped
+
