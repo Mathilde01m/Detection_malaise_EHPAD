@@ -71,9 +71,9 @@ services:
     build: ./api
     container_name: ehpad_fastapi
     ports:
-      "8000:8000"
+      - "8000:8000"
     depends_on:
-      postgres
+      - postgres
     restart: unless-stopped
 
   postgres:
@@ -93,5 +93,8 @@ services:
       - ./database/03_seed_users.sql:/docker-entrypoint-initdb.d/03_seed_users.sql
       - ./database/04_views.sql:/docker-entrypoint-initdb.d/04_views.sql
       - ./data:/data
+
+volumes:
+  postgres_data:
 
 
