@@ -130,7 +130,7 @@ def on_message(client, userdata, msg):
         
         # 1. MISE À JOUR DU CACHE REDIS
         if msg_type == "vitals":
-            r.hset(f"state:{res_id}", "hr", data.get('hr', 0))
+            r.hset(f"state:{res_id}", "hr", data.get('heart_rate', 0))
             r.hset(f"state:{res_id}", "spo2", data.get('spo2', 0))
             r.lpush(f"history:{res_id}", json.dumps(data))
             r.ltrim(f"history:{res_id}", 0, 9)

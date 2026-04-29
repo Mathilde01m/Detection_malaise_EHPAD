@@ -1,95 +1,138 @@
-<<<<<<< HEAD
 // --- CONFIGURATION ---
-const MQTT_HOST = window.location.hostname; 
-const MQTT_PORT = 9001; // Port WebSocket de Mosquitto
+const MQTT_HOST = window.location.hostname;
+const MQTT_PORT = 9001;
 const CLIENT_ID = "SanteOS_Front_" + Math.random().toString(16).substr(2, 5);
 
 let mqttClient;
-let currentPatientId = null;
+let currentPatientId = null; 
 
-// Liste synchronisée avec tes IDs de residents.csv
-let PATIENTS = [
-  { id:'101', name:'Dubois Martin', age:'67 ans', status:'stable', hr:0, ox:0, bp:'0/0', tmp:'0', diag:'Post-op', history: [] },
-  { id:'102', name:'Lefevre Sophie', age:'54 ans', status:'stable', hr:0, ox:0, bp:'0/0', tmp:'0', diag:'Sepsis', history: [] },
-  { id:'103', name:'Bernard Jean', age:'78 ans', status:'stable', hr:0, ox:0, bp:'0/0', tmp:'0', diag:'Pneumonie', history: [] },
-  { id:'104', name:'Moreau Claire', age:'45 ans', status:'stable', hr:0, ox:0, bp:'0/0', tmp:'0', diag:'Trauma', history: [] },
-  { id:'105', name:'Petit Robert', age:'82 ans', status:'stable', hr:0, ox:0, bp:'0/0', tmp:'0', diag:'Cardio', history: [] }
-];
+let PATIENTS = [];
 
 const LABELS  = { stable:'STABLE', urgent:'URGENT', critical:'CRITIQUE', dead:'ARRÊT' };
 const TAG_CLS = { stable:'tag-stable', urgent:'tag-urgent', critical:'tag-critical', dead:'tag-dead' };
 const PV_CLS  = { stable:'ok', urgent:'warn', critical:'crit', dead:'gone' };
 const COLORS  = { stable:'#00a878', urgent:'#fd7e14', critical:'#e63946', dead:'#495057' };
 
-// --- 1. CONNEXION AU BACKEND (MQTT) ---
+// --- 1. CHARGEMENT INITIAL DEPUIS FASTAPI ---
+async function loadResidents() {
+    try {
+        const resp = await fetch('/api/residents');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        PATIENTS = data.map(r => ({
+            id:      r.id,
+            room:    String(r.chambre),
+            name:    r.nom || `Résident ${r.id}`,
+            age:     '--',
+            status:  riskToStatus(r.risk_score),
+            hr:      r.heart_rate  ?? 0,
+            ox:      r.spo2        ?? 0,
+            bp:      r.tension     ?? '--/--',
+            tmp:     r.temperature ?? '--',
+            diag:    r.pathologie  ?? '--',
+            history: []
+        }));
+
+        renderGrid(PATIENTS);
+        updateCounters();
+    } catch (e) {
+        console.error('Impossible de charger les résidents depuis FastAPI :', e);
+        document.getElementById('grid').innerHTML =
+            '<p style="color:var(--danger); padding:20px;">Erreur de connexion à l\'API.</p>';
+    }
+}
+
+function riskToStatus(score) {
+    if (!score)    return 'stable';
+    if (score >= 4) return 'critical';
+    if (score >= 2) return 'urgent';
+    return 'stable';
+}
+
+// --- 2. CONNEXION MQTT ---
 function initMQTT() {
     mqttClient = new Paho.MQTT.Client(MQTT_HOST, MQTT_PORT, CLIENT_ID);
 
+    mqttClient.onConnectionLost = () => {
+        console.warn('MQTT déconnecté — reconnexion dans 5s');
+        setTimeout(initMQTT, 5000);
+    };
+
     mqttClient.onMessageArrived = (message) => {
         const topic = message.destinationName;
-        const data = JSON.parse(message.payloadString);
+        let data;
+        try { data = JSON.parse(message.payloadString); } catch { return; }
 
-        if (topic.includes("vitals")) {
-            const resId = topic.split('/')[2];
+        if (topic.includes('/vitals')) {
+            const resId = topic.split('/')[2]; 
             updatePatientVitals(resId, data);
-        } else if (topic === "ehpad/alerts") {
+        } else if (topic === 'ehpad/alerts') {
             handleIncomingAlert(data);
         }
     };
 
     mqttClient.connect({
         onSuccess: () => {
-            console.log("✅ Connecté au système de capteurs");
-            mqttClient.subscribe("ehpad/residents/+/vitals");
-            mqttClient.subscribe("ehpad/alerts");
+            console.log('✅ Connecté au broker MQTT');
+            mqttClient.subscribe('ehpad/residents/+/vitals');
+            mqttClient.subscribe('ehpad/alerts');
         },
         onFailure: () => setTimeout(initMQTT, 5000),
         useSSL: false
     });
 }
 
-// --- 2. TRAITEMENT DES DONNÉES RÉELLES ---
-function updatePatientVitals(id, data) {
-    const p = PATIENTS.find(pt => pt.id === id);
+// --- 3. MISE À JOUR CONSTANTES TEMPS RÉEL ---
+function updatePatientVitals(resId, data) {
+    const p = PATIENTS.find(pt => pt.id === resId);
     if (!p) return;
 
-    p.hr = data.heart_rate;
-    p.ox = data.spo2;
-    p.bp = `${data.systolic_bp}/${data.diastolic_bp}`;
+    p.hr  = data.heart_rate;
+    p.ox  = data.spo2;
+    p.bp  = `${data.systolic_bp}/${data.diastolic_bp}`;
     p.tmp = data.temperature;
 
     renderGrid(PATIENTS);
+    updateCounters();
     updateMapStatus();
-    if (currentPatientId === id) refreshPanelUI(p);
+    if (currentPatientId === resId) refreshPanelUI(p);
 }
 
+// --- 4. ALERTES IA ---
 function handleIncomingAlert(alert) {
     const p = PATIENTS.find(pt => pt.id === alert.res_id);
     if (!p) return;
 
-    // Mapping des niveaux du Processor.py (1-5) vers le Front
-    if (alert.level >= 4) p.status = 'critical';
+    if (alert.level >= 4)      p.status = 'critical';
     else if (alert.level >= 2) p.status = 'urgent';
 
-    // Ajout du rapport IA (Mistral) dans l'historique
-    const timeStr = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+    const timeStr = new Date().toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
     let log = `⚠️ ${alert.text}`;
     if (alert.llm_report) log += `<br><small><i>Rapport IA : ${alert.llm_report}</i></small>`;
-
     p.history.push({ time: timeStr, text: log });
-    
-    if (alert.level >= 4) showToast(`ALERTE CRITIQUE : Chambre ${alert.res_id}`);
+
+    if (alert.level >= 4) showToast(`ALERTE CRITIQUE — Chambre ${p.room}`);
+
     renderGrid(PATIENTS);
+    updateCounters();
+    updateMapStatus();
 }
 
-// --- 3. INTERFACE & NAVIGATION ---
+// --- 5. RENDU GRILLE ---
 function renderGrid(pts) {
     const grid = document.getElementById('grid');
     if (!grid) return;
+
+    if (pts.length === 0) {
+        grid.innerHTML = '<p style="color:var(--muted); padding:20px;">Aucun résident trouvé.</p>';
+        return;
+    }
+
     grid.innerHTML = pts.map(p => `
         <div class="pcard ${p.status}" onclick='openPanelById("${p.id}")'>
             <div class="pcard-top">
-                <div class="pcard-room">${p.id}</div>
+                <div class="pcard-room">${p.room}</div>
                 <span class="pcard-tag ${TAG_CLS[p.status]}">${LABELS[p.status]}</span>
             </div>
             <div class="pcard-name">${p.name}</div>
@@ -101,6 +144,16 @@ function renderGrid(pts) {
     `).join('');
 }
 
+// --- 6. COMPTEURS ---
+function updateCounters() {
+    document.getElementById('cnt-stable').textContent   = PATIENTS.filter(p => p.status === 'stable').length;
+    document.getElementById('cnt-urgent').textContent   = PATIENTS.filter(p => p.status === 'urgent').length;
+    document.getElementById('cnt-critical').textContent = PATIENTS.filter(p => p.status === 'critical').length;
+    document.getElementById('cnt-dead').textContent     = PATIENTS.filter(p => p.status === 'dead').length;
+    document.getElementById('cnt-total').textContent    = PATIENTS.length;
+}
+
+// --- 7. PANNEAU PATIENT ---
 function openPanelById(id) {
     const p = PATIENTS.find(pt => pt.id === id);
     if (p) openPanel(p);
@@ -108,11 +161,17 @@ function openPanelById(id) {
 
 function openPanel(p) {
     currentPatientId = p.id;
-    document.getElementById('p-room').textContent = 'CHAMBRE ' + p.id;
-    document.getElementById('p-name').textContent = p.name;
+    document.getElementById('p-room').textContent  = 'CHAMBRE ' + p.room;
+    document.getElementById('p-room-info').textContent = p.room; 
+    document.getElementById('p-name').textContent  = p.name;
+    document.getElementById('p-doc').textContent   = document.getElementById('uid').value || 'Dr. —';
+
+    const ptag = document.getElementById('p-tag');
+    ptag.textContent = LABELS[p.status];
+    ptag.className   = `pcard-tag ${TAG_CLS[p.status]}`;
+
     refreshPanelUI(p);
-    
-    // Historique type Chat
+
     const chat = document.getElementById('chat-history');
     chat.innerHTML = p.history.map(m => `
         <div style="background:var(--surface2); padding:8px; border-radius:4px; border-left:3px solid var(--accent); margin-bottom:5px;">
@@ -120,7 +179,12 @@ function openPanel(p) {
             <div style="font-size:12px; color:var(--text);">${m.text}</div>
         </div>
     `).join('') || '<div style="text-align:center; padding-top:50px; color:var(--muted);">Aucun historique</div>';
-    
+
+    // Reset du champ obligatoire
+    const noteField = document.getElementById('note');
+    noteField.value = '';
+    noteField.style.borderColor = "var(--border)";
+
     document.getElementById('panel').classList.add('show');
     document.getElementById('mask').classList.add('show');
     chat.scrollTop = chat.scrollHeight;
@@ -128,301 +192,127 @@ function openPanel(p) {
 
 function refreshPanelUI(p) {
     const col = COLORS[p.status];
-    document.getElementById('v-hr').innerHTML = `${p.hr}<span class="vb-unit">bpm</span>`;
-    document.getElementById('v-ox').innerHTML = `${p.ox}<span class="vb-unit">%</span>`;
-    document.getElementById('v-bp').innerHTML = `${p.bp}<span class="vb-unit">mmHg</span>`;
+    document.getElementById('v-hr').innerHTML  = `${p.hr}<span class="vb-unit">bpm</span>`;
+    document.getElementById('v-ox').innerHTML  = `${p.ox}<span class="vb-unit">%</span>`;
+    document.getElementById('v-bp').innerHTML  = `${p.bp}<span class="vb-unit">mmHg</span>`;
     document.getElementById('v-tmp').innerHTML = `${p.tmp}<span class="vb-unit">°C</span>`;
     document.querySelectorAll('.vb-val').forEach(el => el.style.color = col);
 }
 
+// --- 8. VALIDATION ET SÉCURITÉ ---
 function saveIntervention() {
-    const note = document.getElementById('note').value.trim();
-    if (!note) return alert("Observation requise");
+    const noteField = document.getElementById('note');
+    const noteText = noteField.value.trim();
 
-    // Envoyer l'acquittement au Backend (pour stopper l'escalade)
-    const ack = { res_id: currentPatientId, staff: "Dr. Morel" };
-    const msg = new Paho.MQTT.Message(JSON.stringify(ack));
-    msg.destinationName = "ehpad/alerts/ack";
-    mqttClient.send(msg);
+    if (noteText === "") {
+        noteField.style.borderColor = "var(--danger)";
+        alert("⚠️ ACTION REQUISE : Saisie obligatoire pour valider l'intervention.");
+        return;
+    }
 
-    // Mettre à jour le local
-    const p = PATIENTS.find(pt => pt.id === currentPatientId);
-    p.history.push({ time: new Date().toLocaleTimeString(), text: `✅ INTERVENTION : ${note}` });
-    p.status = 'stable';
+    const docName = document.getElementById('uid').value || "Dr. Morel";
+    const timeStr = new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
     
-    closePanel();
-    renderGrid(PATIENTS);
+    // On enregistre dans l'historique local pour cette session
+    const p = PATIENTS.find(pt => pt.id === currentPatientId);
+    if(p) p.history.push({ time: timeStr, text: `✅ Intervention (${docName}) : ${noteText}` });
+
+    console.log("Validation intervention pour :", currentPatientId);
+
+    const toast = document.getElementById('toast');
+    toast.innerHTML = "✓ INTERVENTION ENREGISTRÉE";
+    toast.classList.add('show');
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+        noteField.value = ""; // Vider permet de fermer
+        closePanel(true); // Argument true pour forcer la fermeture après succès
+    }, 1500);
 }
 
-// --- FONCTIONS SYSTÈME ---
-function doLogin() {
-    document.getElementById('login').style.display = 'none';
-    document.getElementById('shell').classList.add('in');
-    initMQTT(); // On lance MQTT au login
-    renderGrid(PATIENTS);
+function closePanel(force = false) {
+    const noteField = document.getElementById('note');
+    const noteText = noteField.value.trim();
+    const panel = document.getElementById('panel');
+
+    // Si on essaie de fermer sans note (et sans avoir cliqué sur VALIDER)
+    if (!force && panel.classList.contains('show') && noteText === "") {
+        noteField.style.borderColor = "var(--danger)";
+        noteField.focus();
+        alert("🔒 SÉCURITÉ : Vous devez noter votre intervention avant de quitter.");
+        return;
+    }
+
+    panel.classList.remove('show');
+    document.getElementById('mask').classList.remove('show');
 }
 
+// --- 9. CARTE ---
+function updateMapStatus() {
+    PATIENTS.forEach(p => {
+        const el = document.getElementById(`room-${p.room}`); 
+        if (!el) return;
+        const rect = el.querySelector('rect');
+        el.classList.remove('map-critical');
+        if (p.status === 'critical') {
+            el.classList.add('map-critical');
+            rect.style.fill = 'rgba(230, 57, 70, 0.4)';
+        } else if (p.status === 'urgent') {
+            rect.style.fill = 'rgba(253, 126, 20, 0.4)';
+        } else {
+            rect.style.fill = 'rgba(0, 168, 120, 0.1)';
+        }
+    });
+}
+
+function selectRoom(room) {
+    const p = PATIENTS.find(pt => pt.room === room);
+    if (p) openPanel(p);
+}
+
+// --- 10. NAVIGATION ---
 function setNav(btn, view) {
     document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('view-grid').style.display = (view === 'grid') ? 'block' : 'none';
-    document.getElementById('view-map').style.display = (view === 'map') ? 'block' : 'none';
-    if(view === 'map') updateMapStatus();
+    document.getElementById('view-map').style.display  = (view === 'map')  ? 'block' : 'none';
+    if (view === 'map') updateMapStatus();
 }
 
-function updateMapStatus() {
-    PATIENTS.forEach(p => {
-        const el = document.getElementById(`room-${p.id}`);
-        if (el) {
-            el.classList.remove('map-critical');
-            const rect = el.querySelector('rect');
-            if (p.status === 'critical') el.classList.add('map-critical');
-            else if (p.status === 'urgent') rect.style.fill = 'rgba(253, 126, 20, 0.4)';
-            else rect.style.fill = 'rgba(0, 168, 120, 0.1)';
-        }
-    });
+// --- 11. RECHERCHE ---
+function filterCards(value) {
+    const q = value.toLowerCase().trim();
+    if (!q) { renderGrid(PATIENTS); return; }
+    const filtered = PATIENTS.filter(p =>
+        p.room.includes(q) || p.name.toLowerCase().includes(q)
+    );
+    renderGrid(filtered);
 }
 
-function closePanel() { 
-    document.getElementById('panel').classList.remove('show'); 
-    document.getElementById('mask').classList.remove('show'); 
+// --- 12. UTILITAIRES ---
+function addPatient() {
+    alert('Fonctionnalité disponible en mode administrateur uniquement.');
 }
 
 function showToast(m) {
     const t = document.getElementById('toast');
-    t.innerHTML = m; t.classList.add('show');
+    t.innerHTML = m;
+    t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 4000);
 }
 
+// --- DÉMARRAGE ---
+function doLogin() {
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('shell').classList.add('in');
+    loadResidents().then(() => initMQTT());
+}
+
 setInterval(() => {
-    const d = new Date();
-    document.getElementById('clock').textContent = d.toLocaleTimeString('fr-FR');
+    // Correction de l'horloge pour éviter le plantage
+    document.getElementById('clock').textContent = new Date().toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
 }, 1000);
-=======
-let isCareValidated = false;
-
-const API_URL = "http://localhost:8000";
-
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('login-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        document.getElementById('login-screen').classList.add('hidden');
-        document.getElementById('dashboard').classList.remove('hidden');
-        renderSector('A');
-    });
-
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.onclick = () => {
-            document.querySelector('.tab.active').classList.remove('active');
-            tab.classList.add('active');
-
-            const sector = tab.dataset.sector;
-
-            if (sector === 'PLAN') {
-                document.getElementById('patient-container').classList.add('hidden');
-                document.getElementById('plan-container').classList.remove('hidden');
-                updateHeatmap();
-            } else {
-                document.getElementById('plan-container').classList.add('hidden');
-                document.getElementById('patient-container').classList.remove('hidden');
-                renderSector(sector);
-            }
-        };
-    });
-});
-
-async function renderSector(id) {
-    const container = document.getElementById('patient-container');
-    container.innerHTML = '<p>Chargement des résidents...</p>';
-
-    try {
-        const response = await fetch(`${API_URL}/residents`);
-
-        if (!response.ok) {
-            throw new Error("Erreur API");
-        }
-
-        const residents = await response.json();
-
-        const filteredResidents = residents.filter(resident => {
-            return resident.secteur === id;
-        });
-
-        container.innerHTML = '';
-
-        if (filteredResidents.length === 0) {
-            container.innerHTML = '<p>Aucun résident trouvé pour ce secteur.</p>';
-            return;
-        }
-
-        filteredResidents.forEach(resident => {
-            const risk = resident.risk_score ?? 0;
-            const bpm = resident.heart_rate ?? "--";
-            const spo2 = resident.spo2 ?? "--";
-            const tension = resident.tension ?? "--/--";
-            const temp = resident.temperature ?? "--";
-
-            const card = document.createElement('div');
-
-            card.className = `card ${risk > 80 ? 'status-high' : ''}`;
-
-            card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px">
-                    <strong style="font-size:18px">Chambre ${resident.chambre}</strong>
-                    <span style="background:${risk > 80 ? '#FEE2E2' : '#ECFDF5'}; color:${risk > 80 ? 'var(--danger)' : '#059669'}; padding:5px 10px; border-radius:10px; font-size:12px; font-weight:800">
-                        ${risk}% Risk IA
-                    </span>
-                </div>
-
-                <div class="card-vitals" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
-                    <div class="vital-box" style="padding:10px">
-                        <strong>${bpm}</strong>
-                        <small>BPM</small>
-                    </div>
-
-                    <div class="vital-box" style="padding:10px">
-                        <strong>${spo2}%</strong>
-                        <small>SpO2</small>
-                    </div>
-                </div>
-            `;
-
-            card.onclick = () => openDrawer(`Chambre ${resident.chambre}`, {
-                risk,
-                bpm,
-                spo2,
-                tension,
-                temp
-            });
-
-            container.appendChild(card);
-        });
-
-    } catch (error) {
-        console.error(error);
-        container.innerHTML = `
-            <p style="color:red; font-weight:bold">
-                Impossible de charger les données depuis FastAPI.
-            </p>
-            <p>Vérifie que ton backend est lancé sur http://localhost:8000</p>
-        `;
-    }
-}
-
-function openDrawer(name, data) {
-    isCareValidated = false;
-
-    document.getElementById('side-drawer').classList.remove('hidden');
-    document.getElementById('overlay').classList.remove('hidden');
-    document.getElementById('drawer-name').innerText = name;
-
-    const banner = document.getElementById('care-banner');
-    banner.style.background = "#FEF2F2";
-    banner.style.color = "#991B1B";
-    banner.innerText = "⚠️ INTERVENTION NON VALIDÉE";
-
-    document.getElementById('soignant-note').value = "";
-    document.getElementById('soignant-note').disabled = false;
-
-    document.getElementById('drawer-vitals').innerHTML = `
-        <div class="vital-box" style="grid-column: span 2; padding:30px; border: 2px solid var(--primary); background: #EEF2FF">
-            <small style="color:var(--primary)">Score Prédictif IA</small>
-            <strong>${data.risk}%</strong>
-        </div>
-
-        <div class="vital-box">
-            <strong>${data.bpm}</strong>
-            <small>BPM (Pouls)</small>
-        </div>
-
-        <div class="vital-box">
-            <strong>${data.spo2}%</strong>
-            <small>SpO2 (Sat.)</small>
-        </div>
-
-        <div class="vital-box">
-            <strong>${data.tension}</strong>
-            <small>Tension (mmHg)</small>
-        </div>
-
-        <div class="vital-box">
-            <strong>${data.temp}°C</strong>
-            <small>Température</small>
-        </div>
-    `;
-
-    switchDrawerTab('vitals');
-}
-
-function validateCare() {
-    const note = document.getElementById('soignant-note').value;
-
-    if (note.length < 10) {
-        alert("🔒 Erreur : Rapport de soin trop court (10 caractères minimum).");
-        return;
-    }
-
-    isCareValidated = true;
-
-    const banner = document.getElementById('care-banner');
-    banner.innerText = "✅ INTERVENTION VALIDÉE & ARCHIVÉE";
-    banner.style.background = "#ECFDF5";
-    banner.style.color = "#065F46";
-
-    document.getElementById('soignant-note').disabled = true;
-}
-
-function closeDrawer() {
-    document.getElementById('side-drawer').classList.add('hidden');
-    document.getElementById('overlay').classList.add('hidden');
-}
-
-function switchDrawerTab(tabName) {
-    document.getElementById('tab-vitals').classList.add('hidden');
-    document.getElementById('tab-soins').classList.add('hidden');
-
-    document.getElementById('btn-tab-vitals').classList.remove('active');
-    document.getElementById('btn-tab-soins').classList.remove('active');
-
-    document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-    document.getElementById(`btn-tab-${tabName}`).classList.add('active');
-}
-
-async function updateHeatmap() {
-    try {
-        const response = await fetch(`${API_URL}/residents`);
-        const residents = await response.json();
-
-        updateSectorRisk('A', residents);
-        updateSectorRisk('B', residents);
-
-    } catch (error) {
-        console.error(error);
-    }
-}
-
-function updateSectorRisk(sector, residents) {
-    const sectorResidents = residents.filter(r => r.secteur === sector);
-
-    if (sectorResidents.length === 0) {
-        document.querySelector(`#map-sector-${sector} .zone-risk`).innerText = "--%";
-        return;
-    }
-
-    const averageRisk = Math.round(
-        sectorResidents.reduce((sum, r) => sum + (r.risk_score ?? 0), 0) / sectorResidents.length
-    );
-
-    document.querySelector(`#map-sector-${sector} .zone-risk`).innerText = `${averageRisk}%`;
-}
-
-function selectSector(sector) {
-    document.getElementById('plan-container').classList.add('hidden');
-    document.getElementById('patient-container').classList.remove('hidden');
-
-    document.querySelector('.tab.active').classList.remove('active');
-    document.querySelector(`[data-sector="${sector}"]`).classList.add('active');
-
-    renderSector(sector);
-}
->>>>>>> bcbc6c4b90b274ea40a14a828078403c56a12413

@@ -12,14 +12,16 @@ services:
 
   frontend:
     image: nginx:alpine
-    container_name: ehpad_dashboard   
+    container_name: ehpad_dashboard
     ports:
       - "8080:80"
     volumes:
-      - ./frontend:/usr/share/nginx/html:ro 
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - mqtt-broker
       - backend-ia
+      - fastapi
 
   redis-cache:
     image: redis:alpine
@@ -29,12 +31,13 @@ services:
     restart: unless-stopped
 
   backend-ia:
-    build: ./backend_IA  
+    build: ./backend_IA
     platform: linux/amd64
     container_name: backend_ia
     depends_on:
       - mqtt-broker
       - redis-cache
+      - postgres
     restart: on-failure
 
   ollama:
@@ -47,7 +50,7 @@ services:
     restart: unless-stopped
 
   simulateur-vitaux:
-    build: ./simulateur  
+    build: ./simulateur
     container_name: ehpad_simulator_vitaux
     depends_on:
       - mqtt-broker
@@ -56,7 +59,7 @@ services:
     restart: on-failure
 
   simulateur-capteurs:
-    build: ./capteurs    
+    build: ./capteurs
     container_name: ehpad_simulator_capteurs
     depends_on:
       - mqtt-broker
@@ -66,12 +69,13 @@ services:
 
   fastapi:
     build: ./api
-    container_name: ehpad_fastapi
-    ports:
-      - "8000:8000"
+    container_name: ehpad_api
     depends_on:
       - postgres
-    restart: unless-stopped
+      - mqtt-broker
+    ports:
+      - "8000:8000"
+    restart: on-failure
 
   postgres:
     image: postgres:16

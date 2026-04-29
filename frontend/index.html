@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<<<<<<< HEAD
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -60,57 +59,73 @@
     </div>
 
     <div id="view-map" style="display:none; padding: 20px;">
-      <div class="section-label">PLAN TECHNIQUE - AILE NORD</div>
-      <div class="map-container" style="position:relative; background:var(--surface); border-radius:8px; padding:20px; border:1px solid var(--border); overflow:hidden;">
-        <svg viewBox="0 0 800 400" id="ehpad-map" style="width:100%; height:auto;">
-          <rect x="50" y="180" width="700" height="40" fill="var(--bg)" stroke="var(--border)" />
-          
-          <g id="room-101" class="map-room" onclick="selectRoom('101')" cursor="pointer">
-            <rect x="50" y="50" width="100" height="130" fill="var(--surface2)" stroke="var(--border)" />
-            <text x="100" y="115" fill="var(--text)" text-anchor="middle" font-size="12">101</text>
-          </g>
-          <g id="room-102" class="map-room" onclick="selectRoom('102')" cursor="pointer">
-            <rect x="150" y="50" width="100" height="130" fill="var(--surface2)" stroke="var(--border)" />
-            <text x="200" y="115" fill="var(--text)" text-anchor="middle" font-size="12">102</text>
-          </g>
-          <g id="room-103" class="map-room" onclick="selectRoom('103')" cursor="pointer">
-            <rect x="250" y="50" width="100" height="130" fill="var(--surface2)" stroke="var(--border)" />
-            <text x="300" y="115" fill="var(--text)" text-anchor="middle" font-size="12">103</text>
-          </g>
-          <g id="room-104" class="map-room" onclick="selectRoom('104')" cursor="pointer">
-            <rect x="350" y="50" width="100" height="130" fill="var(--surface2)" stroke="var(--border)" />
-            <text x="400" y="115" fill="var(--text)" text-anchor="middle" font-size="12">104</text>
+      <div class="section-label">PLAN TECHNIQUE — SECTEURS A, B, C, D</div>
+      <div class="map-container" style="position:relative; background:var(--surface); border-radius:8px; padding:16px; border:1px solid var(--border); overflow:hidden;">
+        
+        <svg viewBox="0 0 1000 600" id="ehpad-map" style="width:100%; height:auto; max-height: 70vh;">
+          <circle cx="500" cy="300" r="50" fill="rgba(0,229,160,0.1)" stroke="var(--accent)" stroke-width="2"/>
+          <text x="500" y="305" fill="var(--accent)" text-anchor="middle" font-size="12" font-weight="bold" font-family="var(--mono)">POSTE</text>
+
+          <g transform="translate(300, 20)">
+            <rect width="400" height="150" rx="8" fill="rgba(0,229,160,0.03)" stroke="rgba(0,229,160,0.3)" stroke-width="2"/>
+            <text x="200" y="25" fill="var(--accent)" text-anchor="middle" font-size="14" font-weight="bold" font-family="var(--mono)" letter-spacing="2">PAVILLON NORD</text>
+            <g id="room-101" class="map-room" onclick="selectRoom('101')"><rect x="30" y="45" width="55" height="35" rx="4"/><text x="57" y="67" fill="var(--text)" text-anchor="middle" font-size="12">101</text></g>
+            <g id="room-102" class="map-room" onclick="selectRoom('102')"><rect x="100" y="45" width="55" height="35" rx="4"/><text x="127" y="67" fill="var(--text)" text-anchor="middle" font-size="12">102</text></g>
+            <g id="room-103" class="map-room" onclick="selectRoom('103')"><rect x="170" y="45" width="55" height="35" rx="4"/><text x="197" y="67" fill="var(--text)" text-anchor="middle" font-size="12">103</text></g>
+            <g id="room-104" class="map-room" onclick="selectRoom('104')"><rect x="240" y="45" width="55" height="35" rx="4"/><text x="267" y="67" fill="var(--text)" text-anchor="middle" font-size="12">104</text></g>
+            <g id="room-105" class="map-room" onclick="selectRoom('105')"><rect x="310" y="45" width="55" height="35" rx="4"/><text x="337" y="67" fill="var(--text)" text-anchor="middle" font-size="12">105</text></g>
+            <g id="room-106" class="map-room" onclick="selectRoom('106')"><rect x="30" y="95" width="55" height="35" rx="4"/><text x="57" y="117" fill="var(--text)" text-anchor="middle" font-size="12">106</text></g>
+            <g id="room-107" class="map-room" onclick="selectRoom('107')"><rect x="100" y="95" width="55" height="35" rx="4"/><text x="127" y="117" fill="var(--text)" text-anchor="middle" font-size="12">107</text></g>
+            <g id="room-108" class="map-room" onclick="selectRoom('108')"><rect x="170" y="95" width="55" height="35" rx="4"/><text x="197" y="117" fill="var(--text)" text-anchor="middle" font-size="12">108</text></g>
+            <g id="room-109" class="map-room" onclick="selectRoom('109')"><rect x="240" y="95" width="55" height="35" rx="4"/><text x="267" y="117" fill="var(--text)" text-anchor="middle" font-size="12">109</text></g>
+            <g id="room-110" class="map-room" onclick="selectRoom('110')"><rect x="310" y="95" width="55" height="35" rx="4"/><text x="337" y="117" fill="var(--text)" text-anchor="middle" font-size="12">110</text></g>
           </g>
 
-          <rect x="450" y="180" width="100" height="100" fill="var(--accent)" fill-opacity="0.1" stroke="var(--accent)" stroke-width="2" />
-          <text x="500" y="235" fill="var(--accent)" text-anchor="middle" font-size="10" font-weight="bold">POSTE SOINS</text>
+          <g transform="translate(300, 430)">
+            <rect width="400" height="150" rx="8" fill="rgba(0,102,255,0.03)" stroke="rgba(0,102,255,0.3)" stroke-width="2"/>
+            <text x="200" y="140" fill="var(--accent2)" text-anchor="middle" font-size="14" font-weight="bold" font-family="var(--mono)" letter-spacing="2">PAVILLON SUD</text>
+            <g id="room-201" class="map-room" onclick="selectRoom('201')"><rect x="30" y="25" width="55" height="35" rx="4"/><text x="57" y="47" fill="var(--text)" text-anchor="middle" font-size="12">201</text></g>
+            <g id="room-202" class="map-room" onclick="selectRoom('202')"><rect x="100" y="25" width="55" height="35" rx="4"/><text x="127" y="47" fill="var(--text)" text-anchor="middle" font-size="12">202</text></g>
+            <g id="room-203" class="map-room" onclick="selectRoom('203')"><rect x="170" y="25" width="55" height="35" rx="4"/><text x="197" y="47" fill="var(--text)" text-anchor="middle" font-size="12">203</text></g>
+            <g id="room-204" class="map-room" onclick="selectRoom('204')"><rect x="240" y="25" width="55" height="35" rx="4"/><text x="267" y="47" fill="var(--text)" text-anchor="middle" font-size="12">204</text></g>
+            <g id="room-205" class="map-room" onclick="selectRoom('205')"><rect x="310" y="25" width="55" height="35" rx="4"/><text x="337" y="47" fill="var(--text)" text-anchor="middle" font-size="12">205</text></g>
+            <g id="room-206" class="map-room" onclick="selectRoom('206')"><rect x="30" y="75" width="55" height="35" rx="4"/><text x="57" y="97" fill="var(--text)" text-anchor="middle" font-size="12">206</text></g>
+            <g id="room-207" class="map-room" onclick="selectRoom('207')"><rect x="100" y="75" width="55" height="35" rx="4"/><text x="127" y="97" fill="var(--text)" text-anchor="middle" font-size="12">207</text></g>
+            <g id="room-208" class="map-room" onclick="selectRoom('208')"><rect x="170" y="75" width="55" height="35" rx="4"/><text x="197" y="97" fill="var(--text)" text-anchor="middle" font-size="12">208</text></g>
+            <g id="room-209" class="map-room" onclick="selectRoom('209')"><rect x="240" y="75" width="55" height="35" rx="4"/><text x="267" y="97" fill="var(--text)" text-anchor="middle" font-size="12">209</text></g>
+            <g id="room-210" class="map-room" onclick="selectRoom('210')"><rect x="310" y="75" width="55" height="35" rx="4"/><text x="337" y="97" fill="var(--text)" text-anchor="middle" font-size="12">210</text></g>
+          </g>
 
-          <g id="room-105" class="map-room" onclick="selectRoom('105')" cursor="pointer">
-            <rect x="50" y="220" width="100" height="130" fill="var(--surface2)" stroke="var(--border)" />
-            <text x="100" y="285" fill="var(--text)" text-anchor="middle" font-size="12">105</text>
+          <g transform="translate(750, 150)">
+            <rect width="200" height="300" rx="8" fill="rgba(255,159,10,0.03)" stroke="rgba(255,159,10,0.3)" stroke-width="2"/>
+            <text x="100" y="25" fill="var(--warn)" text-anchor="middle" font-size="14" font-weight="bold" font-family="var(--mono)" letter-spacing="2">PAV. EST</text>
+            <g id="room-301" class="map-room" onclick="selectRoom('301')"><rect x="35" y="50" width="55" height="35" rx="4"/><text x="62" y="72" fill="var(--text)" text-anchor="middle" font-size="12">301</text></g>
+            <g id="room-302" class="map-room" onclick="selectRoom('302')"><rect x="110" y="50" width="55" height="35" rx="4"/><text x="137" y="72" fill="var(--text)" text-anchor="middle" font-size="12">302</text></g>
+            <g id="room-303" class="map-room" onclick="selectRoom('303')"><rect x="35" y="110" width="55" height="35" rx="4"/><text x="62" y="132" fill="var(--text)" text-anchor="middle" font-size="12">303</text></g>
+            <g id="room-304" class="map-room" onclick="selectRoom('304')"><rect x="110" y="110" width="55" height="35" rx="4"/><text x="137" y="132" fill="var(--text)" text-anchor="middle" font-size="12">304</text></g>
+            <g id="room-305" class="map-room" onclick="selectRoom('305')"><rect x="35" y="170" width="55" height="35" rx="4"/><text x="62" y="192" fill="var(--text)" text-anchor="middle" font-size="12">305</text></g>
+            <g id="room-306" class="map-room" onclick="selectRoom('306')"><rect x="110" y="170" width="55" height="35" rx="4"/><text x="137" y="192" fill="var(--text)" text-anchor="middle" font-size="12">306</text></g>
           </g>
-          <g id="room-106" class="map-room" onclick="selectRoom('106')" cursor="pointer">
-            <rect x="150" y="220" width="100" height="130" fill="var(--surface2)" stroke="var(--border)" />
-            <text x="200" y="285" fill="var(--text)" text-anchor="middle" font-size="12">106</text>
-          </g>
-          <g id="room-107" class="map-room" onclick="selectRoom('107')" cursor="pointer">
-            <rect x="250" y="220" width="100" height="130" fill="var(--surface2)" stroke="var(--border)" />
-            <text x="300" y="285" fill="var(--text)" text-anchor="middle" font-size="12">107</text>
-          </g>
-          <g id="room-108" class="map-room" onclick="selectRoom('108')" cursor="pointer">
-            <rect x="350" y="220" width="100" height="130" fill="var(--surface2)" stroke="var(--border)" />
-            <text x="400" y="285" fill="var(--text)" text-anchor="middle" font-size="12">108</text>
+
+          <g transform="translate(50, 150)">
+            <rect width="200" height="300" rx="8" fill="rgba(255,59,48,0.03)" stroke="rgba(255,59,48,0.3)" stroke-width="2"/>
+            <text x="100" y="25" fill="var(--danger)" text-anchor="middle" font-size="14" font-weight="bold" font-family="var(--mono)" letter-spacing="2">PAV. OUEST</text>
+            <g id="room-401" class="map-room" onclick="selectRoom('401')"><rect x="35" y="50" width="55" height="35" rx="4"/><text x="62" y="72" fill="var(--text)" text-anchor="middle" font-size="12">401</text></g>
+            <g id="room-402" class="map-room" onclick="selectRoom('402')"><rect x="110" y="50" width="55" height="35" rx="4"/><text x="137" y="72" fill="var(--text)" text-anchor="middle" font-size="12">402</text></g>
+            <g id="room-403" class="map-room" onclick="selectRoom('403')"><rect x="35" y="110" width="55" height="35" rx="4"/><text x="62" y="132" fill="var(--text)" text-anchor="middle" font-size="12">403</text></g>
+            <g id="room-404" class="map-room" onclick="selectRoom('404')"><rect x="110" y="110" width="55" height="35" rx="4"/><text x="137" y="132" fill="var(--text)" text-anchor="middle" font-size="12">404</text></g>
+            <g id="room-405" class="map-room" onclick="selectRoom('405')"><rect x="35" y="170" width="55" height="35" rx="4"/><text x="62" y="192" fill="var(--text)" text-anchor="middle" font-size="12">405</text></g>
+            <g id="room-406" class="map-room" onclick="selectRoom('406')"><rect x="110" y="170" width="55" height="35" rx="4"/><text x="137" y="192" fill="var(--text)" text-anchor="middle" font-size="12">406</text></g>
           </g>
         </svg>
 
-        <div style="margin-top:15px; display:flex; gap:15px; font-size:10px; font-family:var(--mono);">
-            <span><i style="background:var(--accent); width:8px; height:8px; display:inline-block; border-radius:1px; margin-right:4px;"></i> STABLE</span>
-            <span><i style="background:var(--danger); width:8px; height:8px; display:inline-block; border-radius:1px; margin-right:4px;"></i> CRITIQUE / ALERTE</span>
-            <span><i style="background:var(--dead); width:8px; height:8px; display:inline-block; border-radius:1px; margin-right:4px;"></i> ARRÊT</span>
+        <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:15px; font-size:10px; font-family:var(--mono);">
+          <span><i style="background:rgba(0,168,120,0.5); width:10px; height:10px; display:inline-block; border-radius:2px; margin-right:5px;"></i>STABLE</span>
+          <span><i style="background:rgba(253,126,20,0.6); width:10px; height:10px; display:inline-block; border-radius:2px; margin-right:5px;"></i>URGENT</span>
+          <span><i style="background:var(--danger); width:10px; height:10px; display:inline-block; border-radius:2px; margin-right:5px;"></i>CRITIQUE</span>
         </div>
       </div>
     </div>
-
   </div>
 </div>
 
@@ -135,20 +150,19 @@
         <div class="vital-box"><div class="vb-label">TEMP.</div><div class="vb-val" id="v-tmp">—<span class="vb-unit">°C</span></div></div>
       </div>
     </div>
+
     <div>
       <div class="section-label">INFORMATIONS</div>
-      <div class="info-grid">
-        <div class="info-box"><div class="ib-label">ÂGE</div><div class="ib-val" id="p-age">—</div></div>
-        <div class="info-box"><div class="ib-label">ADMISSION</div><div class="ib-val" id="p-admit">—</div></div>
-        <div class="info-box"><div class="ib-label">MÉDECIN</div><div class="ib-val" id="p-doc">—</div></div>
-        <div class="info-box"><div class="ib-label">DIAGNOSTIC</div><div class="ib-val" id="p-diag">—</div></div>
+      <div class="info-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="info-box"><div class="ib-label">CHAMBRE</div><div class="ib-val" id="p-room-info">—</div></div>
+        <div class="info-box"><div class="ib-label">MÉDECIN / RÉFÉRENT</div><div class="ib-val" id="p-doc">—</div></div>
       </div>
     </div>
+
     <div class="notes-section">
       <div class="section-label">HISTORIQUE DES OBSERVATIONS</div>
-      <div id="chat-history" style="background: var(--bg); border: 1px solid var(--border); border-radius: 4px; height: 180px; overflow-y: auto; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px;">
-      </div>
-      <textarea id="note" placeholder="Saisir une nouvelle observation obligatoire pour valider..." style="height: 60px;"></textarea>
+      <div id="chat-history" style="background: var(--bg); border: 1px solid var(--border); border-radius: 4px; height: 180px; overflow-y: auto; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
+      <textarea id="note" placeholder="Saisir une nouvelle observation..." style="height: 60px;"></textarea>
     </div>
   </div>
   <div class="panel-footer">
@@ -160,126 +174,5 @@
 <div class="toast" id="toast">✓ INTERVENTION ENREGISTRÉE</div>
 
 <script src="script.js"></script>
-=======
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vigilance Pro | EHPAD Connect</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-</head>
-<body>
-
-    <div id="login-screen" class="login-page">
-        <div class="login-box">
-            <div class="logo-shield">✚</div>
-            <h1>EHPAD<span>Connect</span></h1>
-            <p class="login-subtitle">Interface de Vigilance Médicale</p>
-            
-            <form id="login-form">
-                <div class="input-group">
-                    <label>IDENTIFICATION SOIGNANT</label>
-                    <input type="password" id="password-input" placeholder="Saisissez votre code d'accès" required>
-                </div>
-                <button type="submit" class="btn-primary">
-                    DÉVERROUILLER L'UNITÉ
-                </button>
-            </form>
-            <p class="login-footer-text">Accès sécurisé crypté AES-256</p>
-        </div>
-    </div>
-
-    <div id="dashboard" class="hidden">
-        <header class="main-header">
-            <div class="header-left">
-                <span class="app-icon">✚</span>
-                <div class="app-info">
-                    <span class="app-name">VIGILANCE PRO</span>
-                    <span class="app-unit">UNITÉ ALPHA</span>
-                </div>
-            </div>
-            <div class="header-right">
-                <div class="ai-status">
-                    <span class="dot pulse"></span> IA ACTIVE
-                </div>
-                <div class="user-chip">ID: #8842</div>
-            </div>
-        </header>
-
-        <nav class="nav-bar">
-            <div class="nav-tabs">
-                <button class="tab active" data-sector="A">SECTEUR NORD</button>
-                <button class="tab" data-sector="B">SECTEUR SUD</button>
-                <button class="tab plan-tab" data-sector="PLAN">📍 CARTE THERMIQUE</button>
-            </div>
-        </nav>
-
-        <main id="main-content">
-            <div id="patient-container" class="patient-grid"></div>
-
-            <div id="plan-container" class="hidden">
-                <div class="plan-card">
-                    <div class="plan-header">
-                        <h3>Cartographie des Risques</h3>
-                        <p>Analyse prédictive de la charge de soins</p>
-                    </div>
-                    <div class="map-layout">
-                        <div id="map-sector-A" class="map-zone" onclick="selectSector('A')">
-                            <span class="zone-label">AILE NORD</span>
-                            <strong class="zone-risk">--%</strong>
-                        </div>
-                        <div id="map-sector-B" class="map-zone" onclick="selectSector('B')">
-                            <span class="zone-label">AILE SUD</span>
-                            <strong class="zone-risk">--%</strong>
-                        </div>
-                        <div class="map-station">POSTE DE SOINS CENTRAL</div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <div id="side-drawer" class="drawer hidden">
-        <div class="drawer-header">
-            <button class="close-btn" onclick="closeDrawer()">✕</button>
-            <h2 id="drawer-name">Dossier Patient</h2>
-        </div>
-        
-        <nav class="drawer-nav">
-            <button class="d-tab active" id="btn-tab-vitals" onclick="switchDrawerTab('vitals')">CONSTANTES</button>
-            <button class="d-tab" id="btn-tab-soins" onclick="switchDrawerTab('soins')">VALIDATION</button>
-        </nav>
-
-        <div class="drawer-body">
-            <div id="tab-vitals" class="tab-content">
-                <div class="vitals-dashboard" id="drawer-vitals">
-                    </div>
-            </div>
-
-            <div id="tab-soins" class="tab-content hidden">
-                <div class="validation-card">
-                    <div class="security-banner" id="care-banner">
-                        ⚠️ INTERVENTION NON VALIDÉE
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>RAPPORT CLINIQUE OBLIGATOIRE</label>
-                        <textarea id="soignant-note" placeholder="Décrivez l'intervention (état clinique, soins réalisés)..."></textarea>
-                    </div>
-                    
-                    <button class="btn-validate" onclick="validateCare()">
-                        <span>✓</span> CONFIRMER LA PRISE EN CHARGE
-                    </button>
-                </div>
-                
-                <div id="notes-history" class="history-section">
-                    </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="overlay" class="overlay hidden" onclick="closeDrawer()"></div>
-
-    <script src="script.js"></script>
->>>>>>> bcbc6c4b90b274ea40a14a828078403c56a12413
 </body>
 </html>

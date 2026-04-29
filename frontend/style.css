@@ -244,3 +244,89 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+
+/* =========================================
+   MEDIA QUERIES - RESPONSIVE DESIGN 
+   ========================================= */
+
+/* Pour les écrans standards et Grille automatique */
+#shell {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 20px;
+}
+.grid {
+  display: grid;
+  /* La magie de la grille : s'adapte toute seule à la largeur de l'écran */
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+/* 📱 POUR TABLETTES ET TÉLÉPHONES (Moins de 768px de large) */
+@media (max-width: 768px) {
+  #shell {
+    flex-direction: column; /* Le menu passe en haut ou en bas */
+  }
+
+  /* La barre latérale devient une barre de navigation en bas (style app mobile) */
+  .sidebar {
+    width: 100%;
+    height: 70px;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 0 20px;
+    order: 2; /* Met la barre tout en bas */
+    border-right: none;
+    border-top: 1px solid var(--border);
+  }
+  .sb-nav {
+    flex-direction: row;
+    gap: 20px;
+    margin: 0;
+  }
+  .sb-logo, .sb-avatar {
+    display: none; /* On cache le logo et l'avatar sur mobile pour gagner de la place */
+  }
+
+  /* La barre du haut (Recherche, Horloge) */
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  .topbar-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .search {
+    width: 100%; /* La barre de recherche prend toute la largeur */
+  }
+
+  /* Les compteurs de statistiques (Stable, Urgent, etc.) */
+  .stats-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .stat-cell {
+    flex: 1 1 calc(50% - 10px); /* 2 compteurs par ligne */
+    margin-bottom: 10px;
+  }
+
+  /* Panneau Patient (Popup) */
+  .panel {
+    width: 100%;
+    right: 0;
+    top: 10%; /* Laisse un peu d'espace en haut */
+    border-radius: 12px 12px 0 0;
+  }
+  .vitals-grid {
+    grid-template-columns: 1fr 1fr; /* 2 constantes par ligne sur mobile */
+  }
+}
