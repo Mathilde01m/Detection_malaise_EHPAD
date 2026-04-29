@@ -16,6 +16,7 @@ const COLORS  = { stable:'var(--accent)', urgent:'var(--warn)', critical:'var(--
 
 let currentPatientId = null;
 
+// --- INITIALISATION & LOGIN ---
 function doLogin() {
   const uid = document.getElementById('uid').value;
   const init = uid.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2);
@@ -27,8 +28,27 @@ function doLogin() {
   }, 400);
   renderGrid(PATIENTS);
   updateCounts(PATIENTS);
+  // La carte est mise à jour dès la connexion
+  updateMapStatus();
 }
 
+// --- NAVIGATION ---
+function setNav(btn, view) {
+  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  
+  // Basculement des vues
+  document.getElementById('view-grid').style.display = (view === 'grid') ? 'block' : 'none';
+  document.getElementById('view-map').style.display = (view === 'map') ? 'block' : 'none';
+  
+  const titles = { grid:'Patients', map:'Plan Ehpad', alerts:'Alertes actives', stats:'Statistiques' };
+  document.getElementById('view-title').textContent = titles[view] || view;
+  
+  // Mise à jour de la carte quand on l'affiche
+  if(view === 'map') updateMapStatus();
+}
+
+// --- LOGIQUE PATIENTS & GRILLE ---
 function renderGrid(pts) {
   document.getElementById('grid').innerHTML = pts.map(p => {
     const vc = PV_CLS[p.status];
@@ -62,6 +82,44 @@ function filterCards(q) {
   updateCounts(pts);
 }
 
+// --- LOGIQUE PLAN (MAP) ---
+// MODIFICATION ICI : Coloration selon le degré d'urgence
+function updateMapStatus() {
+  PATIENTS.forEach(p => {
+    const roomElement = document.getElementById(`room-${p.id}`);
+    if (roomElement) {
+      // Nettoyage des états précédents
+      roomElement.classList.remove('map-critical');
+      const rect = roomElement.querySelector('rect');
+      
+      // Application de la couleur selon le statut (degré d'urgence)
+      if (p.status === 'critical') {
+        // Rouge + Animation (géré par CSS .map-critical)
+        roomElement.classList.add('map-critical');
+        rect.style.fill = ''; // On laisse le CSS gérer
+      } else if (p.status === 'urgent') {
+        // Orange
+        rect.style.fill = 'rgba(255, 159, 10, 0.5)'; // Orange transparent
+        rect.style.stroke = 'var(--warn)';
+      } else if (p.status === 'dead') {
+        // Gris
+        rect.style.fill = 'rgba(85, 85, 85, 0.5)';
+        rect.style.stroke = 'var(--dead)';
+      } else {
+        // Stable (Vert)
+        rect.style.fill = 'rgba(0, 229, 160, 0.2)'; // Vert très transparent
+        rect.style.stroke = 'var(--accent)';
+      }
+    }
+  });
+}
+
+function selectRoom(roomId) {
+  const patient = PATIENTS.find(p => p.id === roomId);
+  if (patient) openPanel(patient);
+}
+
+// --- LOGIQUE PANEL & CHAT ---
 function openPanel(p) {
   currentPatientId = p.id;
   const col = COLORS[p.status];
@@ -83,23 +141,22 @@ function openPanel(p) {
   document.getElementById('p-doc').textContent   = p.doc;
   document.getElementById('p-diag').textContent  = p.diag;
 
-  // Affichage de l'historique type Chat
+  // Affichage de l'historique
   const patientData = PATIENTS.find(pt => pt.id === p.id);
   const chatHistory = document.getElementById('chat-history');
   chatHistory.innerHTML = '';
   
   if (patientData.history.length === 0) {
-    chatHistory.innerHTML = `<div style="color: var(--muted); font-size: 11px; text-align: center; margin-top: 70px;">Aucun historique pour ce patient</div>`;
+    chatHistory.innerHTML = `<div style="color: var(--muted); font-size: 11px; text-align: center; margin-top: 70px; font-style:italic;">Aucune observation pour le moment</div>`;
   } else {
     patientData.history.forEach(msg => {
       chatHistory.innerHTML += `
-        <div style="background: var(--surface2); border: 1px solid var(--border); padding: 8px; border-radius: 4px;">
-          <div style="font-family: var(--mono); font-size: 9px; color: var(--accent); margin-bottom: 4px;">${msg.time}</div>
+        <div style="background: var(--surface2); border: 1px solid var(--border); padding: 8px; border-radius: 4px; border-left: 3px solid var(--accent);">
+          <div style="font-family: var(--mono); font-size: 9px; color: var(--accent); margin-bottom: 4px; font-weight:bold;">[${msg.time}]</div>
           <div style="font-size: 12px; color: var(--text); line-height: 1.4;">${msg.text}</div>
         </div>
       `;
     });
-    // Scroll en bas automatique
     setTimeout(() => { chatHistory.scrollTop = chatHistory.scrollHeight; }, 100);
   }
 
@@ -117,8 +174,9 @@ function closePanel() {
 function saveIntervention() {
   const noteContent = document.getElementById('note').value.trim();
 
+  // VALIDATION OBLIGATOIRE
   if (noteContent === "") {
-    alert("ERREUR : Une observation est obligatoire.");
+    alert("⚠ SAISIE OBLIGATOIRE : Vous devez rédiger une observation pour clôturer l'intervention.");
     document.getElementById('note').focus();
     return;
   }
@@ -129,7 +187,7 @@ function saveIntervention() {
 
   const patientIndex = PATIENTS.findIndex(pt => pt.id === currentPatientId);
   if (patientIndex !== -1) {
-    // On ajoute à l'historique au lieu de remplacer
+    // Ajout à l'historique
     PATIENTS[patientIndex].history.push({
       time: timeStr,
       text: noteContent
@@ -137,23 +195,17 @@ function saveIntervention() {
   }
 
   closePanel();
+  // Mise à jour de la carte après enregistrement (si le statut a changé)
+  updateMapStatus(); 
   const t = document.getElementById('toast');
-  t.innerHTML = `✓ OBSERVATION ENREGISTRÉE`;
+  t.innerHTML = `✓ OBSERVATION ENREGISTRÉE À ${now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}`;
   t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'), 2500);
 }
 
-// ... Reste des fonctions (setNav, addPatient, horloge, etc.) inchangé ...
-
-function setNav(btn, view) {
-  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  const titles = { grid:'Patients', alerts:'Alertes actives', stats:'Statistiques' };
-  document.getElementById('view-title').textContent = titles[view] || view;
-}
-
+// --- UTILITAIRES ---
 function addPatient() {
-  alert("Formulaire d'admission patient — à implémenter");
+  alert("Accès restreint : Administration requise pour admission.");
 }
 
 setInterval(()=>{
