@@ -10,6 +10,19 @@ services:
       - ./config/mosquitto.conf:/config/mosquitto.conf
     restart: unless-stopped
 
+  frontend:
+    image: nginx:alpine
+    container_name: ehpad_dashboard
+    ports:
+      - "8080:80"
+    volumes:
+      # Si tu as mis les fichiers dans un dossier "frontend", laisse cette ligne :
+      - ./frontend:/usr/share/nginx/html:ro 
+      # (Si tu as tout laissé à la racine, remplace "./frontend" par ".")
+    depends_on:
+      - mqtt-broker
+      - backend-ia
+
   redis-cache:
     image: redis:alpine
     container_name: redis_cache
@@ -73,3 +86,4 @@ services:
 
 volumes:
   postgres_data:
+
