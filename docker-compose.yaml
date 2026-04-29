@@ -10,6 +10,19 @@ services:
       - ./config/mosquitto.conf:/config/mosquitto.conf
     restart: unless-stopped
 
+  frontend:
+    image: nginx:alpine
+    container_name: ehpad_dashboard
+    ports:
+      - "8080:80"
+    volumes:
+      # Si tu as mis les fichiers dans un dossier "frontend", laisse cette ligne :
+      - ./frontend:/usr/share/nginx/html:ro 
+      # (Si tu as tout laissé à la racine, remplace "./frontend" par ".")
+    depends_on:
+      - mqtt-broker
+      - backend-ia
+
   redis-cache:
     image: redis:alpine
     container_name: redis_cache
@@ -18,12 +31,13 @@ services:
     restart: unless-stopped
 
   backend-ia:
-    build: ./backend_IA  
+    build: ./backend_IA
     platform: linux/amd64
     container_name: backend_ia
     depends_on:
       - mqtt-broker
       - redis-cache
+      - postgres
     restart: on-failure
 
   ollama:
@@ -36,7 +50,7 @@ services:
     restart: unless-stopped
 
   simulateur-vitaux:
-    build: ./simulateur  # Correction du nom de dossier
+    build: ./simulateur
     container_name: ehpad_simulator_vitaux
     depends_on:
       - mqtt-broker
@@ -45,14 +59,23 @@ services:
     restart: on-failure
 
   simulateur-capteurs:
-    build: ./capteurs    # Ajout du service manquant
+    build: ./capteurs
     container_name: ehpad_simulator_capteurs
     depends_on:
       - mqtt-broker
     volumes:
       - ./data:/app/data
     restart: on-failure
-  
+
+  fastapi:
+    build: ./api
+    container_name: ehpad_fastapi
+    ports:
+      "8000:8000"
+    depends_on:
+      postgres
+    restart: unless-stopped
+
   postgres:
     image: postgres:16
     container_name: ehpad_postgres
@@ -71,5 +94,4 @@ services:
       - ./database/04_views.sql:/docker-entrypoint-initdb.d/04_views.sql
       - ./data:/data
 
-volumes:
-  postgres_data:
+
