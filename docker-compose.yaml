@@ -74,7 +74,7 @@ services:
 volumes:
   postgres_data:
 
-  fastapi:
+fastapi:
   build: ./api
   container_name: ehpad_fastapi
   ports:
