@@ -2,59 +2,105 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>SANTÉ OS - Triage</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SANTÉ OS | Unité Nord</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div id="login-screen">
-        <div class="login-box">
-            <div class="logo-shield">S</div>
-            <h1>SANTÉ OS</h1>
-            <form id="login-form">
-                <input type="text" placeholder="Identifiant" required>
-                <input type="password" placeholder="PIN" required>
-                <button type="submit" class="btn-primary">S'IDENTIFIER</button>
-            </form>
-        </div>
+<div id="login">
+  <div class="login-wrap">
+    <div class="login-logo">SYSTÈME ACTIF</div>
+    <h1>SANTÉ OS</h1>
+    <p>Authentification requise pour accéder à l'unité de soins.</p>
+    <div class="field"><label>IDENTIFIANT</label><input type="text" id="uid" value="Dr. Morel" placeholder="ex: Dr. Morel"></div>
+    <div class="field"><label>CODE PIN</label><input type="password" id="pin" value="0000" placeholder="••••"></div>
+    <button class="login-btn" onclick="doLogin()">ACCÉDER → UNITÉ NORD</button>
+    <div class="login-hint">identifiant + pin préremplis pour démo</div>
+  </div>
+</div>
+
+<div id="shell">
+  <aside class="sidebar">
+    <div class="sb-logo">S+</div>
+    <div class="sb-nav">
+      <button class="sb-btn active" onclick="setNav(this,'grid')" title="Grille">⊞</button>
+      <button class="sb-btn" onclick="setNav(this,'alerts')" title="Alertes">◉</button>
+      <button class="sb-btn" onclick="setNav(this,'stats')" title="Stats">▦</button>
+    </div>
+    <div class="sb-avatar" id="user-init">DR</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-label">UNITÉ NORD — ÉTAGE 3</div>
+        <div class="topbar-title" id="view-title">Patients</div>
+      </div>
+      <div class="topbar-right">
+        <div class="clock" id="clock">--:--</div>
+        <input class="search" type="text" placeholder="Chambre, nom..." oninput="filterCards(this.value)">
+        <button class="add-btn" onclick="addPatient()">+ PATIENT</button>
+      </div>
     </div>
 
-    <div id="dashboard" class="hidden">
-        <header class="main-header">
-            <strong>SANTÉ OS</strong>
-            <input type="text" placeholder="Rechercher...">
-        </header>
-
-        <nav class="nav-bar">
-            <div class="nav-tabs">
-                <button class="tab active" id="btn-a" onclick="selectSector('A')">UNITÉ NORD</button>
-                <button class="tab" id="btn-b" onclick="selectSector('B')">UNITÉ SUD</button>
-                <button class="tab" id="btn-plan" onclick="showPlan()">PLAN</button>
-            </div>
-        </nav>
-
-        <main id="patient-container" class="patient-grid"></main>
-
-        <div id="plan-container" class="hidden">
-            <div style="background:white; padding:40px; border-radius:30px; text-align:center; max-width:600px; margin:40px auto;">
-                <h3>PLAN DE L'UNITÉ</h3>
-                <p>Cliquez sur un secteur dans les onglets pour voir les chambres.</p>
-            </div>
-        </div>
+    <div class="stats-row">
+      <div class="stat-cell"><div class="stat-label">STABLE</div><div class="stat-val c-stable" id="cnt-stable">0</div></div>
+      <div class="stat-cell"><div class="stat-label">URGENT</div><div class="stat-val c-urgent" id="cnt-urgent">0</div></div>
+      <div class="stat-cell"><div class="stat-label">CRITIQUE</div><div class="stat-val c-critical" id="cnt-critical">0</div></div>
+      <div class="stat-cell"><div class="stat-label">ARRÊT</div><div class="stat-val c-dead" id="cnt-dead">0</div></div>
+      <div class="stat-cell"><div class="stat-label">TOTAL</div><div class="stat-val" id="cnt-total" style="color:var(--text)">0</div></div>
     </div>
 
-    <div id="side-drawer" class="drawer hidden">
-        <div class="drawer-header">
-            <h2 id="drawer-name">Chambre</h2>
-            <button class="close-btn" onclick="closeDrawer()">Fermer</button>
-        </div>
-        <div id="drawer-vitals" class="vitals-grid"></div>
-        <textarea id="soignant-note" placeholder="Notes..."></textarea>
-        <button class="btn-confirm-care" onclick="validateCare()">VALIDER SOINS</button>
+    <div class="grid-wrap">
+      <div class="grid" id="grid"></div>
     </div>
+  </div>
+</div>
 
-    <div id="overlay" class="overlay hidden" onclick="closeDrawer()"></div>
+<div class="panel-mask" id="mask" onclick="closePanel()"></div>
 
-    <script src="script.js"></script>
+<div class="panel" id="panel">
+  <div class="panel-top">
+    <div>
+      <div class="panel-room" id="p-room">CHAMBRE —</div>
+      <div class="panel-name" id="p-name">—</div>
+      <span id="p-tag" class="pcard-tag">—</span>
+    </div>
+    <button class="panel-close" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-body">
+    <div>
+      <div class="section-label">CONSTANTES VITALES</div>
+      <div class="vitals-grid">
+        <div class="vital-box"><div class="vb-label">POULS</div><div class="vb-val" id="v-hr">—<span class="vb-unit">bpm</span></div></div>
+        <div class="vital-box"><div class="vb-label">SpO₂</div><div class="vb-val" id="v-ox">—<span class="vb-unit">%</span></div></div>
+        <div class="vital-box"><div class="vb-label">PRESSION</div><div class="vb-val" id="v-bp">—<span class="vb-unit">mmHg</span></div></div>
+        <div class="vital-box"><div class="vb-label">TEMP.</div><div class="vb-val" id="v-tmp">—<span class="vb-unit">°C</span></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="section-label">INFORMATIONS</div>
+      <div class="info-grid">
+        <div class="info-box"><div class="ib-label">ÂGE</div><div class="ib-val" id="p-age">—</div></div>
+        <div class="info-box"><div class="ib-label">ADMISSION</div><div class="ib-val" id="p-admit">—</div></div>
+        <div class="info-box"><div class="ib-label">MÉDECIN</div><div class="ib-val" id="p-doc">—</div></div>
+        <div class="info-box"><div class="ib-label">DIAGNOSTIC</div><div class="ib-val" id="p-diag">—</div></div>
+      </div>
+    </div>
+    <div class="notes-section">
+      <div class="section-label">OBSERVATIONS SOIGNANT</div>
+      <textarea id="note" placeholder="Saisir une observation..."></textarea>
+    </div>
+  </div>
+  <div class="panel-footer">
+    <button class="action-btn btn-secondary" onclick="closePanel()">FERMER</button>
+    <button class="action-btn btn-primary" onclick="saveIntervention()">VALIDER INTERVENTION</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">✓ INTERVENTION ENREGISTRÉE</div>
+
+<script src="script.js"></script>
 </body>
 </html>
