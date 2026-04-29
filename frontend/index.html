@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>SANTÉ OS - Triage</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <div class="logo-shield">S</div>
+            <h1>SANTÉ OS</h1>
+            <form id="login-form">
+                <input type="text" placeholder="Identifiant" required>
+                <input type="password" placeholder="PIN" required>
+                <button type="submit" class="btn-primary">S'IDENTIFIER</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="dashboard" class="hidden">
+        <header class="main-header">
+            <strong>SANTÉ OS</strong>
+            <input type="text" placeholder="Rechercher...">
+        </header>
+
+        <nav class="nav-bar">
+            <div class="nav-tabs">
+                <button class="tab active" id="btn-a" onclick="selectSector('A')">UNITÉ NORD</button>
+                <button class="tab" id="btn-b" onclick="selectSector('B')">UNITÉ SUD</button>
+                <button class="tab" id="btn-plan" onclick="showPlan()">PLAN</button>
+            </div>
+        </nav>
+
+        <main id="patient-container" class="patient-grid"></main>
+
+        <div id="plan-container" class="hidden">
+            <div style="background:white; padding:40px; border-radius:30px; text-align:center; max-width:600px; margin:40px auto;">
+                <h3>PLAN DE L'UNITÉ</h3>
+                <p>Cliquez sur un secteur dans les onglets pour voir les chambres.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="side-drawer" class="drawer hidden">
+        <div class="drawer-header">
+            <h2 id="drawer-name">Chambre</h2>
+            <button class="close-btn" onclick="closeDrawer()">Fermer</button>
+        </div>
+        <div id="drawer-vitals" class="vitals-grid"></div>
+        <textarea id="soignant-note" placeholder="Notes..."></textarea>
+        <button class="btn-confirm-care" onclick="validateCare()">VALIDER SOINS</button>
+    </div>
+
+    <div id="overlay" class="overlay hidden" onclick="closeDrawer()"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
