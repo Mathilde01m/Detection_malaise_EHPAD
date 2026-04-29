@@ -87,3 +87,14 @@ services:
 volumes:
   postgres_data:
 
+<<<<<<< Updated upstream
+=======
+fastapi:
+  build: ./api
+  container_name: ehpad_fastapi
+  ports:
+    - "8000:8000"
+  depends_on:
+    - postgres
+  restart: unless-stopped
+>>>>>>> Stashed changes
