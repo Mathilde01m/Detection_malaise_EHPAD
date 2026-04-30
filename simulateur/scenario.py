@@ -1,6 +1,6 @@
 # 1 tick = 10 secondes dans main.py
-STABLE_DURATION_AFTER_MEDICAL_ACTION = 300  # 5 minutes = 30 ticks
-FAST_FALL_RECOVERY_DURATION = 30            # environ 1 minute
+STABLE_DURATION_AFTER_MEDICAL_ACTION = 30  # 5 minutes = 30 ticks
+FAST_FALL_RECOVERY_DURATION = 6           # environ 1 minute
 
 # Chutes capteurs visibles en 3 minutes
 MECHANICAL_FALL_TICK = 18
