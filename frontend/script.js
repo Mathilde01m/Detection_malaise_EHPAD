@@ -21,17 +21,20 @@ async function loadResidents() {
         const data = await resp.json();
 
         PATIENTS = data.map(r => ({
-            id:      r.id,
-            room:    String(r.chambre),
-            name:    r.nom || `Résident ${r.id}`,
-            age:     '--',
-            status:  riskToStatus(r.risk_score),
-            hr:      r.heart_rate  ?? 0,
-            ox:      r.spo2        ?? 0,
-            bp:      r.tension     ?? '--/--',
-            tmp:     r.temperature ?? '--',
-            diag:    r.pathologie  ?? '--',
-            history: []
+            id:       r.id,
+            room:     String(r.chambre),
+            name:     r.nom || `Résident ${r.id}`,
+            age:      '--',
+            status:   riskToStatus(r.risk_score),
+            hr:       r.heart_rate  ?? 0,
+            ox:       r.spo2        ?? 0,
+            bp:       r.tension     ?? '--/--',
+            tmp:      r.temperature ?? '--',
+            diag:     r.pathologie  ?? '--',
+            history:  [],
+            aiLevel:  0,
+            aiText:   '',
+            aiReport: ''
         }));
 
         renderGrid(PATIENTS);
@@ -111,6 +114,11 @@ function handleIncomingAlert(alert) {
     if (alert.level >= 4)      p.status = 'critical';
     else if (alert.level >= 2) p.status = 'urgent';
 
+    // Stocker la prédiction IA
+    p.aiLevel = alert.level;
+    p.aiText  = alert.text;
+    if (alert.llm_report) p.aiReport = alert.llm_report;
+
     const timeStr = new Date().toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
     let log = `⚠️ ${alert.text}`;
     if (alert.llm_report) log += `<br><small><i>Rapport IA : ${alert.llm_report}</i></small>`;
@@ -121,6 +129,7 @@ function handleIncomingAlert(alert) {
     renderGrid(PATIENTS);
     updateCounters();
     updateMapStatus();
+    if (currentPatientId === p.id) refreshAIPanel(p);
 }
 
 // --- 5. RENDU GRILLE ---
@@ -144,6 +153,11 @@ function renderGrid(pts) {
                 <div class="pv"><div class="pv-label">HR</div><div class="pv-val ${PV_CLS[p.status]}">${p.hr}</div></div>
                 <div class="pv"><div class="pv-label">SpO2</div><div class="pv-val ${PV_CLS[p.status]}">${p.ox}%</div></div>
             </div>
+            ${p.aiLevel > 0 ? `
+            <div class="pcard-ai ai-lvl-${p.aiLevel}">
+                <span class="ai-badge">IA · NIV.${p.aiLevel}</span>
+                <span class="ai-card-text">${p.aiText}</span>
+            </div>` : ''}
         </div>
     `).join('');
 }
@@ -175,6 +189,7 @@ function openPanel(p) {
     ptag.className   = `pcard-tag ${TAG_CLS[p.status]}`;
 
     refreshPanelUI(p);
+    refreshAIPanel(p);
 
     const chat = document.getElementById('chat-history');
     chat.innerHTML = p.history.map(m => `
@@ -186,7 +201,6 @@ function openPanel(p) {
 
     const noteEl = document.getElementById('note');
     noteEl.value = '';
-    // Entrée = valider (Shift+Entrée = saut de ligne normal)
     noteEl.onkeydown = function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -194,9 +208,7 @@ function openPanel(p) {
         }
     };
 
-    // Cacher le bandeau d'avertissement à l'ouverture
     document.getElementById('panel-warning').style.display = 'none';
-
     document.getElementById('panel').classList.add('show');
     document.getElementById('mask').classList.add('show');
     chat.scrollTop = chat.scrollHeight;
@@ -211,11 +223,31 @@ function refreshPanelUI(p) {
     document.querySelectorAll('.vb-val').forEach(el => el.style.color = col);
 }
 
+function refreshAIPanel(p) {
+    const lvlEl    = document.getElementById('ai-level');
+    const textEl   = document.getElementById('ai-text');
+    const reportEl = document.getElementById('ai-report');
+    if (!lvlEl) return;
+
+    if (p.aiLevel > 0) {
+        lvlEl.textContent  = `NIVEAU ${p.aiLevel} / 5`;
+        lvlEl.className    = `ai-level-val ai-lvl-${p.aiLevel}`;
+        textEl.textContent = p.aiText || '—';
+        reportEl.innerHTML = p.aiReport
+            ? `<i>${p.aiReport}</i>`
+            : '<span style="color:var(--muted)">En attente (seuil non atteint pour rapport Mistral)</span>';
+    } else {
+        lvlEl.textContent  = 'AUCUNE ALERTE';
+        lvlEl.className    = 'ai-level-val';
+        textEl.textContent = '—';
+        reportEl.innerHTML = '<span style="color:var(--muted)">Surveillance normale</span>';
+    }
+}
+
 // --- 8. VALIDATION INTERVENTION ---
 function saveIntervention() {
     const note = document.getElementById('note').value.trim();
     if (!note) {
-        // Faire clignoter le champ plutôt qu'une alerte popup
         const noteEl = document.getElementById('note');
         noteEl.style.borderColor = 'var(--danger)';
         noteEl.placeholder = '⚠️ Note obligatoire avant de valider...';
@@ -236,7 +268,10 @@ function saveIntervention() {
     const p = PATIENTS.find(pt => pt.id === currentPatientId);
     if (p) {
         p.history.push({ time: new Date().toLocaleTimeString('fr-FR'), text: `✅ INTERVENTION : ${note}` });
-        p.status = 'stable';
+        p.status   = 'stable';
+        p.aiLevel  = 0;
+        p.aiText   = '';
+        p.aiReport = '';
     }
 
     closePanel();
@@ -291,7 +326,6 @@ function addPatient() {
     alert('Fonctionnalité disponible en mode administrateur uniquement.');
 }
 
-// Fermeture forcée (depuis saveIntervention après validation)
 function closePanel() {
     currentPatientId = null;
     document.getElementById('panel').classList.remove('show');
@@ -299,19 +333,14 @@ function closePanel() {
     document.getElementById('panel-warning').style.display = 'none';
 }
 
-// Tentative de fermeture : bloquée si patient urgent/critique sans intervention
 function tryClosePanel() {
     const p = PATIENTS.find(pt => pt.id === currentPatientId);
     if (p && (p.status === 'urgent' || p.status === 'critical')) {
-        // Bloquer et afficher le bandeau d'avertissement
         const warn = document.getElementById('panel-warning');
         warn.style.display = 'block';
-        // Faire trembler le panneau pour attirer l'attention
         const panel = document.getElementById('panel');
-        panel.style.animation = 'none';
         panel.classList.add('panel-shake');
         setTimeout(() => panel.classList.remove('panel-shake'), 500);
-        // Mettre le focus sur la note
         document.getElementById('note').focus();
         return;
     }
