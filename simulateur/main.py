@@ -14,8 +14,8 @@ MQTT_BROKER_HOST = "mqtt-broker"
 MQTT_BROKER_PORT = 1883
 MQTT_QOS = 0
 
-TICK_DURATION_SECONDS = 3
-STABLE_DURATION_TICKS = 30  # 5 minutes = 30 ticks de 10 secondes
+TICK_DURATION_SECONDS = 1
+STABLE_DURATION_TICKS = 300  # 5 minutes = 30 ticks de 10 secondes
 
 doctor_message_sent_ticks = {}
 doctor_treatment_ticks = {}
