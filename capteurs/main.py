@@ -47,7 +47,7 @@ def main():
                 print(f"Publié sur {topic} : {payload}")
 
             tick += 1
-            time.sleep(1)
+            time.sleep(10)
 
     except KeyboardInterrupt:
         print("\nArrêt du simulateur de capteurs environnementaux...")

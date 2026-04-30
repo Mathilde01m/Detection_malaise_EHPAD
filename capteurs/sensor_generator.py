@@ -3,63 +3,78 @@ from datetime import datetime
 from capteurs.environment_models import RoomMapping
 
 
+NORMAL_CYCLE_DURATION = 240
+
+
 def generate_environment_data(room: RoomMapping, tick: int) -> dict:
+    presence = generate_coherent_presence(tick)
+
     data = {
         "resident_id": room.resident_id,
         "room": room.room,
         "zone": room.zone,
         "floor": room.floor,
         "timestamp": datetime.utcnow().isoformat() + "Z",
-        "bed_sensor": generate_bed_sensor(room, tick),
-        "room_motion": generate_room_motion(room, tick),
-        "corridor_motion": generate_corridor_motion(room, tick),
-        "door_sensor": generate_door_sensor(room, tick),
-        "bathroom_motion": generate_bathroom_motion(room, tick),
-        "common_area_presence": generate_common_area_presence(room, tick),
+        **presence,
         "event_type": "environment_normal",
         "alert_level": 0,
     }
 
-    data = apply_environment_scenarios(data, tick)
-
-    return data
+    return apply_environment_scenarios(data, tick)
 
 
-def generate_bed_sensor(room: RoomMapping, tick: int) -> bool:
-    hour_cycle = tick % 120
+def generate_coherent_presence(tick: int) -> dict:
+    """
+    Génère un état cohérent :
+    - un résident ne peut pas être au lit, dans le couloir,
+      dans la salle de bain et en zone commune en même temps ;
+    - les transitions sont plus lentes ;
+    - quelques petits bruits réalistes sont conservés.
+    """
 
-    if 0 <= hour_cycle < 30:
-        return True
+    cycle = tick % NORMAL_CYCLE_DURATION
 
-    if 30 <= hour_cycle < 90:
-        return random.choice([False, False, False, True])
+    if 0 <= cycle < 80:
+        location = "bed"
+    elif 80 <= cycle < 120:
+        location = "room"
+    elif 120 <= cycle < 150:
+        location = "bathroom"
+    elif 150 <= cycle < 180:
+        location = "corridor"
+    elif 180 <= cycle < 220:
+        location = "common_area"
+    else:
+        location = "room"
 
-    return random.choice([True, False])
+    bed_sensor = location == "bed"
+    room_motion = location == "room"
+    bathroom_motion = location == "bathroom"
+    corridor_motion = location == "corridor"
+    common_area_presence = location == "common_area"
+
+    door_sensor = "closed"
+    if location in ["corridor", "common_area"]:
+        door_sensor = random.choice(["opened", "closed", "closed"])
+
+    return {
+        "bed_sensor": bed_sensor,
+        "room_motion": add_noise(room_motion, probability=0.05),
+        "corridor_motion": add_noise(corridor_motion, probability=0.03),
+        "door_sensor": door_sensor,
+        "bathroom_motion": add_noise(bathroom_motion, probability=0.03),
+        "common_area_presence": add_noise(common_area_presence, probability=0.03),
+    }
 
 
-def generate_room_motion(room: RoomMapping, tick: int) -> bool:
-    return random.choice([True, False, False])
-
-
-def generate_corridor_motion(room: RoomMapping, tick: int) -> bool:
-    return random.choice([False, False, False, True])
-
-
-def generate_door_sensor(room: RoomMapping, tick: int) -> str:
-    return random.choice(["closed", "closed", "closed", "opened"])
-
-
-def generate_bathroom_motion(room: RoomMapping, tick: int) -> bool:
-    return random.choice([False, False, False, True])
-
-
-def generate_common_area_presence(room: RoomMapping, tick: int) -> bool:
-    cycle = tick % 120
-
-    if 45 <= cycle <= 65:
-        return random.choice([True, True, False])
-
-    return random.choice([False, False, True])
+def add_noise(value: bool, probability: float = 0.03) -> bool:
+    """
+    Petit bruit capteur réaliste.
+    Exemple : un capteur peut manquer un mouvement ou détecter brièvement à tort.
+    """
+    if random.random() < probability:
+        return not value
+    return value
 
 
 def apply_environment_scenarios(data: dict, tick: int) -> dict:
@@ -81,61 +96,111 @@ def apply_environment_scenarios(data: dict, tick: int) -> dict:
 
 
 def alzheimer_fugue_scenario(data: dict, tick: int) -> dict:
-    if 50 <= tick < 95:
-        data["bed_sensor"] = False
-        data["room_motion"] = False
-        data["corridor_motion"] = True
-        data["door_sensor"] = "opened"
-        data["event_type"] = "wandering_in_corridor"
-        data["alert_level"] = 2
+    """
+    Fugue progressive :
+    - d'abord errance en chambre / couloir ;
+    - puis tentative de sortie.
+    Les durées sont volontairement plus longues.
+    """
 
-    elif tick >= 95:
-        data["bed_sensor"] = False
-        data["room_motion"] = False
-        data["corridor_motion"] = True
-        data["door_sensor"] = "main_exit_opened"
-        data["event_type"] = "exit_attempt"
-        data["alert_level"] = 3
+    if 120 <= tick < 240:
+        data.update({
+            "bed_sensor": False,
+            "room_motion": False,
+            "bathroom_motion": False,
+            "common_area_presence": False,
+            "corridor_motion": True,
+            "door_sensor": "opened",
+            "event_type": "wandering_in_corridor",
+            "alert_level": 2,
+        })
+
+    elif 240 <= tick < 360:
+        data.update({
+            "bed_sensor": False,
+            "room_motion": False,
+            "bathroom_motion": False,
+            "common_area_presence": False,
+            "corridor_motion": True,
+            "door_sensor": "main_exit_opened",
+            "event_type": "exit_attempt",
+            "alert_level": 3,
+        })
 
     return data
 
 
 def prolonged_bed_immobility_scenario(data: dict, tick: int) -> dict:
-    if tick >= 30:
-        data["bed_sensor"] = True
-        data["room_motion"] = False
-        data["corridor_motion"] = False
-        data["bathroom_motion"] = False
-        data["common_area_presence"] = False
-        data["event_type"] = "prolonged_bed_presence"
-        data["alert_level"] = 1
+    """
+    Immobilité au lit :
+    - présence au lit prolongée ;
+    - escalade lente vers immobilité anormale.
+    """
 
-    if tick >= 70:
-        data["event_type"] = "abnormal_prolonged_immobility"
-        data["alert_level"] = 2
+    if 120 <= tick < 300:
+        data.update({
+            "bed_sensor": True,
+            "room_motion": False,
+            "corridor_motion": False,
+            "door_sensor": "closed",
+            "bathroom_motion": False,
+            "common_area_presence": False,
+            "event_type": "prolonged_bed_presence",
+            "alert_level": 1,
+        })
+
+    elif tick >= 300:
+        data.update({
+            "bed_sensor": True,
+            "room_motion": False,
+            "corridor_motion": False,
+            "door_sensor": "closed",
+            "bathroom_motion": False,
+            "common_area_presence": False,
+            "event_type": "abnormal_prolonged_immobility",
+            "alert_level": 2,
+        })
 
     return data
 
 
 def fall_in_room_scenario(data: dict, tick: int) -> dict:
-    if tick == 75:
-        data["bed_sensor"] = False
-        data["room_motion"] = False
-        data["corridor_motion"] = False
-        data["door_sensor"] = "closed"
-        data["event_type"] = "fall_detected_in_room"
-        data["alert_level"] = 4
+    """
+    Chute en chambre :
+    l'événement reste actif assez longtemps pour être détecté/acquitté.
+    """
+
+    if 180 <= tick < 300:
+        data.update({
+            "bed_sensor": False,
+            "room_motion": False,
+            "corridor_motion": False,
+            "door_sensor": "closed",
+            "bathroom_motion": False,
+            "common_area_presence": False,
+            "event_type": "fall_detected_in_room",
+            "alert_level": 4,
+        })
 
     return data
 
 
 def fall_in_corridor_scenario(data: dict, tick: int) -> dict:
-    if tick == 55:
-        data["bed_sensor"] = False
-        data["room_motion"] = False
-        data["corridor_motion"] = False
-        data["door_sensor"] = "opened"
-        data["event_type"] = "fall_detected_in_corridor"
-        data["alert_level"] = 4
+    """
+    Chute dans le couloir :
+    l'événement dure plusieurs ticks au lieu d'un seul.
+    """
+
+    if 150 <= tick < 270:
+        data.update({
+            "bed_sensor": False,
+            "room_motion": False,
+            "corridor_motion": False,
+            "door_sensor": "opened",
+            "bathroom_motion": False,
+            "common_area_presence": False,
+            "event_type": "fall_detected_in_corridor",
+            "alert_level": 4,
+        })
 
     return data
