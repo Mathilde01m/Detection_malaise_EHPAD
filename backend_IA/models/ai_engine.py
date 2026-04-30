@@ -28,20 +28,17 @@ class EHPAD_AI_Engine:
         if not hasattr(self, 'rf_fall'):
             return 0
         features = np.array([[accel_data['x'], accel_data['y'], accel_data['z']]])
-        prediction = self.rf_fall.predict(features)
-        return 1 if prediction[0] == 1 else 0
+        return self.rf_fall.predict(features)[0]
 
-    def predict_vitals_anomaly(self, vitals_sequence):
+    def predict_vitals_risk(self, history):
         if not hasattr(self, 'lstm_vitals'):
-            return 0.0
-        try:
-            import numpy as np
-            arr = np.array(vitals_sequence).reshape(1, len(vitals_sequence), -1)
-            score = float(self.lstm_vitals.predict(arr, verbose=0)[0][0])
-            return score
-        except Exception:
-            return 0.0
+            return 0
+        if len(history) < 10:
+            return 0
+        seq = [[v.get('heart_rate', v.get('hr', 0)), v.get('spo2', 0)] for v in history]
+        features = np.array([seq], dtype=np.float32)
+        prediction = self.lstm_vitals.predict(features, verbose=0)[0][0]
+        return 1 if prediction > 0.7 else 0
 
-
-# Instance globale importée par processor.py
+# Instance globale
 ai = EHPAD_AI_Engine()
