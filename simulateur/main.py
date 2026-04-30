@@ -15,7 +15,7 @@ MQTT_BROKER_PORT = 1883
 MQTT_QOS = 0
 
 TICK_DURATION_SECONDS = 1
-STABLE_DURATION_TICKS = 300  # 5 minutes = 30 ticks de 10 secondes
+STABLE_DURATION_TICKS = 300  # 5 minutes = 300 ticks de 1 seconde
 
 doctor_message_sent_ticks = {}
 doctor_treatment_ticks = {}
@@ -27,6 +27,17 @@ def build_topic(resident_id: str) -> str:
 
 def add_timestamp(vitals: dict) -> dict:
     vitals["timestamp"] = datetime.utcnow().isoformat() + "Z"
+    return vitals
+
+
+def sanitize_vitals(vitals: dict) -> dict:
+    """
+    Convertit les booléens en entiers pour éviter les erreurs backend_ia.
+    True devient 1, False devient 0.
+    """
+    for key, value in vitals.items():
+        if isinstance(value, bool):
+            vitals[key] = int(value)
     return vitals
 
 
@@ -51,12 +62,6 @@ def mark_doctor_message_if_needed(vitals: dict, tick: int) -> dict:
 
 
 def auto_treat_patient_if_needed(vitals: dict, tick: int) -> dict:
-    """
-    Simulation simple :
-    le médecin traite automatiquement le patient 1 tick après une alerte forte.
-    Tu peux augmenter cette valeur si tu veux simuler un délai plus long.
-    """
-
     resident_id = vitals["resident_id"]
     message_tick = doctor_message_sent_ticks.get(resident_id)
 
@@ -66,7 +71,7 @@ def auto_treat_patient_if_needed(vitals: dict, tick: int) -> dict:
     if resident_id not in doctor_treatment_ticks and tick >= message_tick + 1:
         doctor_treatment_ticks[resident_id] = tick
         vitals["doctor_treatment_tick"] = tick
-        vitals["treated_by_doctor"] = True
+        vitals["treated_by_doctor"] = 1
         vitals["event_type"] = "treated_by_doctor"
         vitals["alert_message"] = "Patient traité par le médecin"
 
@@ -74,11 +79,6 @@ def auto_treat_patient_if_needed(vitals: dict, tick: int) -> dict:
 
 
 def reset_medical_tracking_if_stable_period_finished(resident_id: str, tick: int):
-    """
-    Après 5 minutes de stabilité après traitement,
-    on autorise à nouveau les scénarios à évoluer normalement.
-    """
-
     treatment_tick = doctor_treatment_ticks.get(resident_id)
 
     if treatment_tick is None:
@@ -137,6 +137,7 @@ def main():
                 vitals = auto_treat_patient_if_needed(vitals, tick)
 
                 vitals = add_timestamp(vitals)
+                vitals = sanitize_vitals(vitals)
 
                 topic = build_topic(vitals["resident_id"])
                 payload = json.dumps(vitals, ensure_ascii=False)
