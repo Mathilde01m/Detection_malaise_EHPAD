@@ -372,6 +372,7 @@ def on_message(client, userdata, msg):
             "fall_related_to_malaise": normalize_bool(
                 current_state.get("fall_related_to_malaise", False)
             ),
+            
         }
 
         if lvl >= 4:
