@@ -19,16 +19,34 @@ OLLAMA_URL = "http://ollama:11434/api/generate"
 r = redis.Redis(host=REDIS_HOST, port=6379, db=0, decode_responses=True)
 
 def generate_medical_report(res_id, alert_text, hr, spo2):
-    prompt = f"Agis comme un médecin de garde. Rédige une transmission infirmière ultra-courte (2 phrases max) pour une urgence concernant le résident {res_id}. Motif : {alert_text}. Constantes actuelles : FC {hr} bpm, SpO2 {spo2}%. Sois clinique et direct."
+    # Nouveau prompt beaucoup plus précis pour orienter l'IA sur la cause de la chute
+    prompt = f"""
+    Agis comme un médecin urgentiste. Le résident {res_id} a déclenché une alerte : '{alert_text}'.
+    Ses constantes actuelles sont : Fréquence Cardiaque {hr} bpm, SpO2 {spo2}%.
+    Si l'alerte est une chute, analyse si les constantes vitales expliquent la chute (malaise vagal, hypoxie) ou si c'est probablement une chute mécanique (glissade).
+    Rédige une transmission infirmière ultra-courte (2 phrases maximum). Sois direct et clinique.
+    """
+    
     try:
-        response = requests.post(OLLAMA_URL, json={
-            "model": "mistral",
-            "prompt": prompt,
-            "stream": False
-        }, timeout=15)
-        return response.json()['response']
+        print(f"[*] 🧠 Mistral réfléchit pour {res_id} (cela peut prendre jusqu'à 60s)...")
+        
+        # ⚠️ LE CORRECTIF EST ICI : timeout=60 au lieu de 15
+        response = requests.post(
+            OLLAMA_URL, 
+            json={"model": "mistral", "prompt": prompt, "stream": False}, 
+            timeout=60 
+        )
+        
+        data = response.json()
+        if 'response' in data:
+            return data['response']
+        else:
+            return "Erreur : L'IA n'a pas renvoyé de texte."
+            
+    except requests.exceptions.Timeout:
+        return "L'IA Mistral met trop de temps à générer le rapport (Timeout). Patientez."
     except Exception as e:
-        return f"Échec de la génération IA ({e})"
+        return f"Erreur de connexion à l'IA : {str(e)}"
 
 def evaluate_resident_state(res_id):
     current_state = r.hgetall(f"state:{res_id}")
