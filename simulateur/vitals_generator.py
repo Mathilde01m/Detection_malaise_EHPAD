@@ -47,6 +47,7 @@ def generate_normal_variation(resident: Resident) -> dict:
         "pathologie": resident.pathologie,
         "mobilite": resident.mobilite,
         "risque_principal": resident.risque_principal,
+
         "heart_rate": int(heart_rate),
         "spo2": int(spo2),
         "systolic_bp": int(systolic_bp),
@@ -54,8 +55,13 @@ def generate_normal_variation(resident: Resident) -> dict:
         "temperature": temperature,
         "glucose": int(glucose),
         "movement_level": movement_level,
+
         "fall_detected": False,
+        "fall_type": None,
+        "fall_location": None,
+        "fall_cause": None,
         "fall_related_to_malaise": False,
+
         "door_event": None,
         "ai_risk_score": 0,
         "predicted_by_ai": False,

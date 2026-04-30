@@ -1,6 +1,10 @@
 def apply_scenario(vitals: dict, tick: int) -> dict:
     resident_id = vitals["resident_id"]
 
+    # IMPORTANT :
+    # On ne modifie que les résidents déjà prévus dans le simulateur.
+    # Aucun autre résident n'est impacté.
+
     if resident_id == "R21":
         return cardiac_malaise(vitals, tick)
     if resident_id == "R32":
@@ -45,12 +49,19 @@ def cardiac_malaise(vitals: dict, tick: int) -> dict:
         vitals["alert_level"] = 3
 
     elif tick >= 90:
-        vitals["fall_detected"] = True
+        vitals["heart_rate"] += 35
+        vitals["systolic_bp"] -= 30
         vitals["movement_level"] = 0
+
+        vitals["fall_detected"] = True
+        vitals["fall_type"] = "malaise_cardiaque"
+        vitals["fall_location"] = "room"
+        vitals["fall_cause"] = "malaise cardiaque probable"
+        vitals["fall_related_to_malaise"] = True
+
         vitals["ai_risk_score"] = 95
         vitals["predicted_by_ai"] = True
         vitals["event_type"] = "fall_after_cardiac_malaise"
-        vitals["fall_related_to_malaise"] = True
         vitals["alert_level"] = 4
 
     return vitals
@@ -119,13 +130,20 @@ def hypotension_syncope(vitals: dict, tick: int) -> dict:
         vitals["alert_level"] = 3
 
     elif tick >= 90:
-        vitals["fall_detected"] = True
-        vitals["movement_level"] = 0
         vitals["systolic_bp"] -= 35
+        vitals["diastolic_bp"] -= 18
+        vitals["heart_rate"] += 20
+        vitals["movement_level"] = 0
+
+        vitals["fall_detected"] = True
+        vitals["fall_type"] = "syncope_hypotension"
+        vitals["fall_location"] = "room"
+        vitals["fall_cause"] = "syncope ou hypotension probable"
+        vitals["fall_related_to_malaise"] = True
+
         vitals["ai_risk_score"] = 93
         vitals["predicted_by_ai"] = True
         vitals["event_type"] = "fall_after_syncope"
-        vitals["fall_related_to_malaise"] = True
         vitals["alert_level"] = 4
 
     return vitals
@@ -177,12 +195,17 @@ def severe_respiratory_distress(vitals: dict, tick: int) -> dict:
 
 def mechanical_fall(vitals: dict, tick: int) -> dict:
     if tick == 75:
-        vitals["fall_detected"] = True
         vitals["movement_level"] = 0
+
+        vitals["fall_detected"] = True
+        vitals["fall_type"] = "mechanical"
+        vitals["fall_location"] = "room"
+        vitals["fall_cause"] = "chute mécanique probable"
+        vitals["fall_related_to_malaise"] = False
+
         vitals["ai_risk_score"] = 12
         vitals["predicted_by_ai"] = False
         vitals["event_type"] = "mechanical_fall"
-        vitals["fall_related_to_malaise"] = False
         vitals["alert_level"] = 4
 
     return vitals
@@ -190,12 +213,17 @@ def mechanical_fall(vitals: dict, tick: int) -> dict:
 
 def parkinson_fall(vitals: dict, tick: int) -> dict:
     if tick == 55:
-        vitals["fall_detected"] = True
         vitals["movement_level"] = 0
+
+        vitals["fall_detected"] = True
+        vitals["fall_type"] = "balance_disorder"
+        vitals["fall_location"] = "corridor"
+        vitals["fall_cause"] = "trouble de l'équilibre lié à Parkinson"
+        vitals["fall_related_to_malaise"] = False
+
         vitals["ai_risk_score"] = 18
         vitals["predicted_by_ai"] = False
         vitals["event_type"] = "parkinson_balance_fall"
-        vitals["fall_related_to_malaise"] = False
         vitals["alert_level"] = 4
 
     return vitals
