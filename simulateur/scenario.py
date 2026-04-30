@@ -1,9 +1,71 @@
+# 1 tick = 10 secondes dans main.py
+STABLE_DURATION_AFTER_MEDICAL_ACTION = 30  # 5 minutes = 30 ticks
+FAST_FALL_RECOVERY_DURATION = 6            # environ 1 minute
+
+# Chutes capteurs visibles en 3 minutes
+MECHANICAL_FALL_TICK = 18
+PARKINSON_FALL_TICK = 18
+
+
+def is_recently_handled_by_doctor(vitals: dict, tick: int) -> bool:
+    action_tick = (
+        vitals.get("doctor_message_sent_tick")
+        or vitals.get("doctor_treatment_tick")
+        or vitals.get("treated_at_tick")
+        or vitals.get("handled_at_tick")
+    )
+
+    if action_tick is None:
+        return False
+
+    return tick - action_tick < STABLE_DURATION_AFTER_MEDICAL_ACTION
+
+
+def keep_patient_stable(vitals: dict) -> dict:
+    vitals["ai_risk_score"] = min(vitals.get("ai_risk_score", 0), 20)
+    vitals["predicted_by_ai"] = False
+    vitals["alert_level"] = 0
+    vitals["event_type"] = "stable_after_medical_action"
+    vitals["fall_detected"] = False
+    vitals["alert_message"] = "Patient stabilisé"
+
+    return vitals
+
+
+def set_fall_alert(vitals: dict, event_type: str, fall_type: str, location: str, cause: str) -> dict:
+    vitals["movement_level"] = 0
+    vitals["fall_detected"] = True
+    vitals["fall_type"] = fall_type
+    vitals["fall_location"] = location
+    vitals["fall_cause"] = cause
+    vitals["fall_related_to_malaise"] = False
+
+    vitals["ai_risk_score"] = 12
+    vitals["predicted_by_ai"] = False
+    vitals["event_type"] = event_type
+    vitals["alert_level"] = 5
+    vitals["alert_message"] = "Chute détectée"
+
+    return vitals
+
+
+def recover_simple_fall(vitals: dict) -> dict:
+    vitals["movement_level"] = min(70, vitals.get("movement_level", 0) + 25)
+    vitals["fall_detected"] = False
+    vitals["ai_risk_score"] = 10
+    vitals["predicted_by_ai"] = False
+    vitals["alert_level"] = 1
+    vitals["event_type"] = "fall_recovery"
+    vitals["alert_message"] = "Patient en récupération après chute"
+
+    return vitals
+
+
 def apply_scenario(vitals: dict, tick: int) -> dict:
     resident_id = vitals["resident_id"]
 
-    # IMPORTANT :
-    # On ne modifie que les résidents déjà prévus dans le simulateur.
-    # Aucun autre résident n'est impacté.
+    if is_recently_handled_by_doctor(vitals, tick):
+        return keep_patient_stable(vitals)
 
     if resident_id == "R21":
         return cardiac_malaise(vitals, tick)
@@ -62,7 +124,8 @@ def cardiac_malaise(vitals: dict, tick: int) -> dict:
         vitals["ai_risk_score"] = 95
         vitals["predicted_by_ai"] = True
         vitals["event_type"] = "fall_after_cardiac_malaise"
-        vitals["alert_level"] = 4
+        vitals["alert_level"] = 5
+        vitals["alert_message"] = "Chute détectée"
 
     return vitals
 
@@ -144,7 +207,8 @@ def hypotension_syncope(vitals: dict, tick: int) -> dict:
         vitals["ai_risk_score"] = 93
         vitals["predicted_by_ai"] = True
         vitals["event_type"] = "fall_after_syncope"
-        vitals["alert_level"] = 4
+        vitals["alert_level"] = 5
+        vitals["alert_message"] = "Chute détectée"
 
     return vitals
 
@@ -194,37 +258,33 @@ def severe_respiratory_distress(vitals: dict, tick: int) -> dict:
 
 
 def mechanical_fall(vitals: dict, tick: int) -> dict:
-    if tick == 75:
-        vitals["movement_level"] = 0
+    if tick == MECHANICAL_FALL_TICK:
+        return set_fall_alert(
+            vitals,
+            event_type="mechanical_fall",
+            fall_type="mechanical",
+            location="room",
+            cause="chute mécanique probable"
+        )
 
-        vitals["fall_detected"] = True
-        vitals["fall_type"] = "mechanical"
-        vitals["fall_location"] = "room"
-        vitals["fall_cause"] = "chute mécanique probable"
-        vitals["fall_related_to_malaise"] = False
-
-        vitals["ai_risk_score"] = 12
-        vitals["predicted_by_ai"] = False
-        vitals["event_type"] = "mechanical_fall"
-        vitals["alert_level"] = 4
+    elif MECHANICAL_FALL_TICK < tick <= MECHANICAL_FALL_TICK + FAST_FALL_RECOVERY_DURATION:
+        return recover_simple_fall(vitals)
 
     return vitals
 
 
 def parkinson_fall(vitals: dict, tick: int) -> dict:
-    if tick == 55:
-        vitals["movement_level"] = 0
+    if tick == PARKINSON_FALL_TICK:
+        return set_fall_alert(
+            vitals,
+            event_type="parkinson_balance_fall",
+            fall_type="balance_disorder",
+            location="corridor",
+            cause="trouble de l'équilibre lié à Parkinson"
+        )
 
-        vitals["fall_detected"] = True
-        vitals["fall_type"] = "balance_disorder"
-        vitals["fall_location"] = "corridor"
-        vitals["fall_cause"] = "trouble de l'équilibre lié à Parkinson"
-        vitals["fall_related_to_malaise"] = False
-
-        vitals["ai_risk_score"] = 18
-        vitals["predicted_by_ai"] = False
-        vitals["event_type"] = "parkinson_balance_fall"
-        vitals["alert_level"] = 4
+    elif PARKINSON_FALL_TICK < tick <= PARKINSON_FALL_TICK + FAST_FALL_RECOVERY_DURATION:
+        return recover_simple_fall(vitals)
 
     return vitals
 
