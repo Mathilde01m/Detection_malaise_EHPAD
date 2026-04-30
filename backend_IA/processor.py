@@ -16,9 +16,9 @@ MQTT_BROKER = "mqtt-broker"
 OLLAMA_URL = "http://ollama:11434/api/generate"
 
 # Délais
-ACK_SUPPRESSION_SECONDS = 180      # 3 minutes stable après action médecin
-VITALS_STEP_SECONDS = 40           # gradation toutes les 30-45 secondes
-ALERT_COOLDOWN_SECONDS = 45        # évite le spam d'alertes
+ACK_SUPPRESSION_SECONDS = 180
+VITALS_STEP_SECONDS = 40
+ALERT_COOLDOWN_SECONDS = 45
 
 # Connexion Redis
 r = redis.Redis(host=REDIS_HOST, port=6379, db=0, decode_responses=True)
@@ -34,44 +34,144 @@ def classify_vitals(hr, spo2):
     return "stable"
 
 
-def classify_fall_cause(hr, spo2):
-    if classify_vitals(hr, spo2) == "stable":
+def normalize_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.lower() in ["true", "1", "yes", "oui"]
+    return False
+
+
+def classify_fall_from_context(event_type, fall_type, fall_related_to_malaise, hr, spo2):
+    vitals_state = classify_vitals(hr, spo2)
+
+    event_type = (event_type or "").lower()
+    fall_type = (fall_type or "").lower()
+
+    if fall_related_to_malaise:
+        if fall_type == "malaise_cardiaque" or "cardiac" in event_type:
+            return "cardiac_malaise"
+        if fall_type == "syncope_hypotension" or "syncope" in event_type:
+            return "syncope_hypotension"
+        return "malaise"
+
+    if fall_type == "mechanical" or event_type == "mechanical_fall":
         return "mechanical"
-    return "malaise"
+
+    if fall_type == "balance_disorder" or "parkinson" in event_type:
+        return "parkinson_balance"
+
+    if "fall" in event_type:
+        if vitals_state == "stable":
+            return "mechanical"
+        return "malaise"
+
+    return "none"
 
 
-def generate_medical_report(res_id, alert_text, hr, spo2):
-    fall_cause = classify_fall_cause(hr, spo2)
+def build_fall_alert_text(fall_context, fall_location, fall_cause):
+    location_text = f" en {fall_location}" if fall_location else ""
+    cause_text = f" ({fall_cause})" if fall_cause else ""
 
-    if "chute" in alert_text.lower() or "fall" in alert_text.lower():
-        if fall_cause == "mechanical":
-            cause_instruction = (
-                "Les constantes vitales sont stables. "
-                "Indique clairement que la chute semble non liée à un malaise "
-                "et probablement mécanique."
-            )
-        else:
-            cause_instruction = (
-                "Les constantes vitales sont anormales. "
-                "Indique clairement qu'une chute liée à un malaise est suspectée."
-            )
+    if fall_context == "mechanical":
+        return f"RISQUE MAXIMAL - Chute mécanique détectée{location_text}{cause_text}"
+
+    if fall_context == "parkinson_balance":
+        return f"RISQUE MAXIMAL - Chute liée à un trouble de l'équilibre / Parkinson détectée{location_text}{cause_text}"
+
+    if fall_context == "cardiac_malaise":
+        return f"DANGER VITAL - Chute après malaise cardiaque suspecté{location_text}{cause_text}"
+
+    if fall_context == "syncope_hypotension":
+        return f"DANGER VITAL - Chute après syncope ou hypotension suspectée{location_text}{cause_text}"
+
+    if fall_context == "malaise":
+        return f"DANGER VITAL - Chute avec suspicion de malaise{location_text}{cause_text}"
+
+    return f"RISQUE MAXIMAL - Chute détectée{location_text}{cause_text}"
+
+
+def generate_medical_report(
+    res_id,
+    alert_text,
+    hr,
+    spo2,
+    event_type="normal",
+    fall_type=None,
+    fall_location=None,
+    fall_cause=None,
+    fall_related_to_malaise=False
+):
+    fall_context = classify_fall_from_context(
+        event_type,
+        fall_type,
+        fall_related_to_malaise,
+        hr,
+        spo2
+    )
+
+    if fall_context == "mechanical":
+        cause_instruction = (
+            "Il s'agit d'une chute probablement mécanique. "
+            "Les constantes ne suggèrent pas un malaise immédiat. "
+            "Priorise sécurisation, recherche de traumatisme, douleur, plaie ou fracture."
+        )
+
+    elif fall_context == "parkinson_balance":
+        cause_instruction = (
+            "Il s'agit d'une chute probablement liée à un trouble de l'équilibre ou à Parkinson. "
+            "Priorise évaluation traumatique, aide au relevage sécurisée, surveillance neurologique "
+            "et prévention d'une récidive."
+        )
+
+    elif fall_context == "cardiac_malaise":
+        cause_instruction = (
+            "Il s'agit d'une chute après malaise cardiaque suspecté. "
+            "Considère la situation comme une urgence vitale : constantes, ECG si disponible, "
+            "surveillance rapprochée et appel médical urgent."
+        )
+
+    elif fall_context == "syncope_hypotension":
+        cause_instruction = (
+            "Il s'agit d'une chute après syncope ou hypotension suspectée. "
+            "Priorise mise en sécurité, contrôle tensionnel, surveillance conscience, hydratation selon protocole "
+            "et avis médical rapide."
+        )
+
+    elif fall_context == "malaise":
+        cause_instruction = (
+            "Il s'agit d'une chute possiblement liée à un malaise. "
+            "Priorise évaluation des constantes, conscience, douleur, traumatisme et appel médical rapide."
+        )
+
     else:
         cause_instruction = (
             "Analyse les constantes vitales et donne une conduite à tenir courte."
         )
 
     prompt = f"""
-    Agis comme un médecin urgentiste.
-    Résident : {res_id}
-    Alerte : {alert_text}
-    Fréquence cardiaque : {hr} bpm
-    SpO2 : {spo2}%
+Agis comme un médecin urgentiste en EHPAD.
 
-    {cause_instruction}
+Résident : {res_id}
+Alerte : {alert_text}
 
-    Rédige une transmission infirmière ultra-courte en 2 phrases maximum.
-    Sois direct, clinique et exploitable.
-    """
+Constantes :
+- Fréquence cardiaque : {hr} bpm
+- SpO2 : {spo2} %
+
+Contexte capteurs :
+- event_type : {event_type}
+- fall_type : {fall_type}
+- fall_location : {fall_location}
+- fall_cause : {fall_cause}
+- fall_related_to_malaise : {fall_related_to_malaise}
+
+Instruction médicale :
+{cause_instruction}
+
+Rédige une transmission infirmière ultra-courte en 2 phrases maximum.
+Sois direct, clinique et exploitable.
+"""
 
     try:
         print(f"[*] 🧠 Mistral réfléchit pour {res_id}...")
@@ -92,47 +192,48 @@ def generate_medical_report(res_id, alert_text, hr, spo2):
 
 def evaluate_resident_state(res_id):
     current_state = r.hgetall(f"state:{res_id}")
-    history_raw = r.lrange(f"history:{res_id}", 0, -1)
-    history = [json.loads(h) for h in history_raw][::-1]
 
     hr = float(current_state.get("hr", 70))
     spo2 = float(current_state.get("spo2", 98))
+
     event_type = current_state.get("event_type", "normal")
     env_alert_level = int(current_state.get("alert_level", 0))
 
+    fall_detected = normalize_bool(current_state.get("fall_detected", False))
+    fall_type = current_state.get("fall_type")
+    fall_location = current_state.get("fall_location")
+    fall_cause = current_state.get("fall_cause")
+    fall_related_to_malaise = normalize_bool(
+        current_state.get("fall_related_to_malaise", False)
+    )
+
     now = time.time()
 
-    # Après action médecin : le résident reste stable 3 minutes
     if r.exists(f"ack_suppressed:{res_id}"):
         return 0, "", hr, spo2
 
-    # Chute détectée par capteur : passage direct en risque maximal
-    if env_alert_level == 4 or "fall" in event_type:
-        cause = classify_fall_cause(hr, spo2)
+    fall_context = classify_fall_from_context(
+        event_type,
+        fall_type,
+        fall_related_to_malaise,
+        hr,
+        spo2
+    )
 
-        if cause == "mechanical":
-            return (
-                5,
-                "RISQUE MAXIMAL - Chute détectée non liée à un malaise, constantes vitales stables",
-                hr,
-                spo2
-            )
-
+    if env_alert_level == 4 or fall_detected or "fall" in event_type.lower():
         return (
             5,
-            "RISQUE MAXIMAL - Chute détectée avec suspicion de malaise, constantes vitales anormales",
+            build_fall_alert_text(fall_context, fall_location, fall_cause),
             hr,
             spo2
         )
 
-    # Comportements environnementaux non vitaux
     if env_alert_level == 2 or "wandering" in event_type:
         return 2, "ATTENTION - Comportement anormal détecté", hr, spo2
 
     if env_alert_level == 1 or "prolonged" in event_type:
         return 1, "INFORMATION - Immobilité prolongée détectée", hr, spo2
 
-    # Gradation progressive des constantes vitales
     vitals_state = classify_vitals(hr, spo2)
 
     if vitals_state == "stable":
@@ -160,10 +261,6 @@ def evaluate_resident_state(res_id):
 
 
 def escalation_monitor():
-    """
-    L'escalade principale est maintenant gérée par evaluate_resident_state()
-    pour les constantes vitales. Ce monitor sert surtout de sécurité.
-    """
     while True:
         try:
             active_alerts = r.hgetall("active_alerts")
@@ -179,12 +276,27 @@ def escalation_monitor():
         time.sleep(5)
 
 
+def save_environment_context(res_id, data):
+    fields = [
+        "event_type",
+        "alert_level",
+        "fall_detected",
+        "fall_type",
+        "fall_location",
+        "fall_cause",
+        "fall_related_to_malaise",
+    ]
+
+    for field in fields:
+        if field in data and data[field] is not None:
+            r.hset(f"state:{res_id}", field, data[field])
+
+
 def on_message(client, userdata, msg):
     try:
         topic = msg.topic
         data = json.loads(msg.payload)
 
-        # Acquittement médecin
         if topic.startswith("ehpad/alerts/ack"):
             res_id = data.get("res_id")
 
@@ -193,8 +305,18 @@ def on_message(client, userdata, msg):
                 r.delete(f"last_alert_time:{res_id}")
                 r.delete(f"vitals_abnormal_since:{res_id}")
 
-                r.hset(f"state:{res_id}", "event_type", "normal")
-                r.hset(f"state:{res_id}", "alert_level", 0)
+                reset_fields = {
+                    "event_type": "normal",
+                    "alert_level": 0,
+                    "fall_detected": False,
+                    "fall_type": "",
+                    "fall_location": "",
+                    "fall_cause": "",
+                    "fall_related_to_malaise": False,
+                }
+
+                for key, value in reset_fields.items():
+                    r.hset(f"state:{res_id}", key, value)
 
                 r.setex(
                     f"ack_suppressed:{res_id}",
@@ -223,8 +345,7 @@ def on_message(client, userdata, msg):
             r.ltrim(f"history:{res_id}", 0, 9)
 
         elif msg_type == "environment":
-            r.hset(f"state:{res_id}", "event_type", data.get("event_type", "normal"))
-            r.hset(f"state:{res_id}", "alert_level", data.get("alert_level", 0))
+            save_environment_context(res_id, data)
 
         lvl, msg_alert, hr, spo2 = evaluate_resident_state(res_id)
 
@@ -237,11 +358,20 @@ def on_message(client, userdata, msg):
         if last_alert and now - float(last_alert) < ALERT_COOLDOWN_SECONDS:
             return
 
+        current_state = r.hgetall(f"state:{res_id}")
+
         alert_payload = {
             "res_id": res_id,
             "level": lvl,
             "text": msg_alert,
-            "timestamp": data.get("timestamp", "")
+            "timestamp": data.get("timestamp", ""),
+            "event_type": current_state.get("event_type", "normal"),
+            "fall_type": current_state.get("fall_type"),
+            "fall_location": current_state.get("fall_location"),
+            "fall_cause": current_state.get("fall_cause"),
+            "fall_related_to_malaise": normalize_bool(
+                current_state.get("fall_related_to_malaise", False)
+            ),
         }
 
         if lvl >= 4:
@@ -250,7 +380,12 @@ def on_message(client, userdata, msg):
                 res_id,
                 msg_alert,
                 hr,
-                spo2
+                spo2,
+                event_type=alert_payload["event_type"],
+                fall_type=alert_payload["fall_type"],
+                fall_location=alert_payload["fall_location"],
+                fall_cause=alert_payload["fall_cause"],
+                fall_related_to_malaise=alert_payload["fall_related_to_malaise"],
             )
 
         client.publish("ehpad/alerts", json.dumps(alert_payload))
@@ -261,7 +396,12 @@ def on_message(client, userdata, msg):
                 "level": lvl,
                 "time": now,
                 "text": msg_alert,
-                "timestamp": alert_payload["timestamp"]
+                "timestamp": alert_payload["timestamp"],
+                "event_type": alert_payload["event_type"],
+                "fall_type": alert_payload["fall_type"],
+                "fall_location": alert_payload["fall_location"],
+                "fall_cause": alert_payload["fall_cause"],
+                "fall_related_to_malaise": alert_payload["fall_related_to_malaise"],
             }))
 
         print(f"[NIVEAU {lvl}] Alerte publiée pour {res_id} : {msg_alert}")
@@ -270,7 +410,6 @@ def on_message(client, userdata, msg):
         print(f"Erreur processing: {e}")
 
 
-# Initialisation MQTT
 client = mqtt_client.Client(CallbackAPIVersion.VERSION1, "Backend_IA")
 client.on_message = on_message
 
@@ -289,5 +428,5 @@ client.subscribe("ehpad/alerts/ack")
 escalation_thread = threading.Thread(target=escalation_monitor, daemon=True)
 escalation_thread.start()
 
-print("[*] IA Processor prêt : chute mécanique, gradation vitaux, ACK 3 min activés.")
+print("[*] IA Processor prêt : types de chute, gradation vitaux, ACK 3 min activés.")
 client.loop_forever()
