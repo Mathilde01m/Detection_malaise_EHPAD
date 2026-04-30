@@ -533,72 +533,6 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
 .legend-dot.critical { background: rgba(255, 59, 48, 0.7); border: 1px solid var(--danger); }
 
 /* =========================================
-<<<<<<< HEAD
-   PRÉDICTIONS IA
-   ========================================= */
-
-/* Badge sur la carte patient */
-.pcard-ai {
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-.ai-badge {
-    font-family: var(--mono);
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    padding: 2px 6px;
-    border-radius: 2px;
-    width: fit-content;
-}
-.ai-card-text {
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--muted);
-    line-height: 1.4;
-}
-
-/* Couleurs par niveau */
-.ai-lvl-1 .ai-badge { background: rgba(90,96,112,0.2); color: var(--muted); }
-.ai-lvl-2 .ai-badge { background: rgba(255,159,10,0.15); color: var(--warn); }
-.ai-lvl-3 .ai-badge { background: rgba(255,159,10,0.25); color: var(--warn); }
-.ai-lvl-4 .ai-badge { background: rgba(255,59,48,0.2); color: var(--danger); }
-.ai-lvl-5 .ai-badge { background: rgba(255,59,48,0.35); color: var(--danger); animation: blink 0.8s infinite; }
-
-/* Section IA dans le panneau */
-.ai-prediction-box {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-.ai-prediction-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.ai-prediction-label {
-    font-family: var(--mono);
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: var(--muted);
-}
-.ai-level-val {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--accent);
-}
-.ai-level-val.ai-lvl-1 { color: var(--muted); }
-=======
    IA — BADGES SUR LES CARTES
    ========================================= */
 .pcard-ai {
@@ -651,35 +585,11 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
   color: var(--muted);
 }
 .ai-level-val.ai-lvl-1 { color: var(--accent); }
->>>>>>> front2
 .ai-level-val.ai-lvl-2,
 .ai-level-val.ai-lvl-3 { color: var(--warn); }
 .ai-level-val.ai-lvl-4,
 .ai-level-val.ai-lvl-5 { color: var(--danger); }
 
-<<<<<<< HEAD
-.ai-prediction-text {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text);
-    line-height: 1.5;
-}
-.ai-report-label {
-    font-family: var(--mono);
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: var(--muted);
-    padding-top: 6px;
-    border-top: 1px solid var(--border);
-}
-.ai-report-display {
-    font-family: var(--sans);
-    font-size: 12px;
-    color: var(--text);
-    line-height: 1.6;
-    font-style: italic;
-=======
 .ai-text-val {
   font-size: 12px;
   color: var(--text);
@@ -697,5 +607,4 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
   line-height: 1.6;
   max-height: 120px;
   overflow-y: auto;
->>>>>>> front2
 }

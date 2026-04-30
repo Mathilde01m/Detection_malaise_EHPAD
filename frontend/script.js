@@ -260,10 +260,6 @@ function handleIncomingAlert(alert) {
     if (alert.level >= 4)      p.status = 'critical';
     else if (alert.level >= 2) p.status = 'urgent';
 
-<<<<<<< HEAD
-    // Stocker la prédiction IA
-=======
->>>>>>> front2
     p.aiLevel = alert.level;
     p.aiText  = alert.text;
     if (alert.llm_report) p.aiReport = alert.llm_report;
@@ -393,11 +389,7 @@ function refreshAIPanel(p) {
     }
 }
 
-<<<<<<< HEAD
-// --- 8. VALIDATION INTERVENTION ---
-=======
 // --- 10. VALIDATION INTERVENTION ---
->>>>>>> front2
 function saveIntervention() {
     const note = document.getElementById('note').value.trim();
     if (!note) {
