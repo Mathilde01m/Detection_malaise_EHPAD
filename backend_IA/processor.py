@@ -8,115 +8,208 @@ import requests
 import threading
 from paho.mqtt import client as mqtt_client
 from paho.mqtt.enums import CallbackAPIVersion
-from models.ai_engine import ai 
+from models.ai_engine import ai
 
 # Configurations
 REDIS_HOST = "redis-cache"
 MQTT_BROKER = "mqtt-broker"
 OLLAMA_URL = "http://ollama:11434/api/generate"
 
-# Connexion à Redis
+# Délais
+ACK_SUPPRESSION_SECONDS = 180      # 3 minutes stable après action médecin
+VITALS_STEP_SECONDS = 40           # gradation toutes les 30-45 secondes
+ALERT_COOLDOWN_SECONDS = 45        # évite le spam d'alertes
+
+# Connexion Redis
 r = redis.Redis(host=REDIS_HOST, port=6379, db=0, decode_responses=True)
 
+
+def classify_vitals(hr, spo2):
+    if hr < 30 or hr > 160 or spo2 < 85:
+        return "critical"
+    if hr < 45 or hr > 135 or spo2 < 90:
+        return "high"
+    if hr < 55 or hr > 120 or spo2 < 93:
+        return "moderate"
+    return "stable"
+
+
+def classify_fall_cause(hr, spo2):
+    if classify_vitals(hr, spo2) == "stable":
+        return "mechanical"
+    return "malaise"
+
+
 def generate_medical_report(res_id, alert_text, hr, spo2):
-    # Nouveau prompt beaucoup plus précis pour orienter l'IA sur la cause de la chute
-    prompt = f"""
-    Agis comme un médecin urgentiste. Le résident {res_id} a déclenché une alerte : '{alert_text}'.
-    Ses constantes actuelles sont : Fréquence Cardiaque {hr} bpm, SpO2 {spo2}%.
-    Si l'alerte est une chute, analyse si les constantes vitales expliquent la chute (malaise vagal, hypoxie) ou si c'est probablement une chute mécanique (glissade).
-    Rédige une transmission infirmière ultra-courte (2 phrases maximum). Sois direct et clinique.
-    """
-    
-    try:
-        print(f"[*] 🧠 Mistral réfléchit pour {res_id} (cela peut prendre jusqu'à 60s)...")
-        
-        # ⚠️ LE CORRECTIF EST ICI : timeout=60 au lieu de 15
-        response = requests.post(
-            OLLAMA_URL, 
-            json={"model": "mistral", "prompt": prompt, "stream": False}, 
-            timeout=60 
-        )
-        
-        data = response.json()
-        if 'response' in data:
-            return data['response']
+    fall_cause = classify_fall_cause(hr, spo2)
+
+    if "chute" in alert_text.lower() or "fall" in alert_text.lower():
+        if fall_cause == "mechanical":
+            cause_instruction = (
+                "Les constantes vitales sont stables. "
+                "Indique clairement que la chute semble non liée à un malaise "
+                "et probablement mécanique."
+            )
         else:
-            return "Erreur : L'IA n'a pas renvoyé de texte."
-            
+            cause_instruction = (
+                "Les constantes vitales sont anormales. "
+                "Indique clairement qu'une chute liée à un malaise est suspectée."
+            )
+    else:
+        cause_instruction = (
+            "Analyse les constantes vitales et donne une conduite à tenir courte."
+        )
+
+    prompt = f"""
+    Agis comme un médecin urgentiste.
+    Résident : {res_id}
+    Alerte : {alert_text}
+    Fréquence cardiaque : {hr} bpm
+    SpO2 : {spo2}%
+
+    {cause_instruction}
+
+    Rédige une transmission infirmière ultra-courte en 2 phrases maximum.
+    Sois direct, clinique et exploitable.
+    """
+
+    try:
+        print(f"[*] 🧠 Mistral réfléchit pour {res_id}...")
+        response = requests.post(
+            OLLAMA_URL,
+            json={"model": "mistral", "prompt": prompt, "stream": False},
+            timeout=60
+        )
+
+        data = response.json()
+        return data.get("response", "Erreur : l'IA n'a pas renvoyé de texte.")
+
     except requests.exceptions.Timeout:
-        return "L'IA Mistral met trop de temps à générer le rapport (Timeout). Patientez."
+        return "L'IA Mistral met trop de temps à générer le rapport."
     except Exception as e:
         return f"Erreur de connexion à l'IA : {str(e)}"
+
 
 def evaluate_resident_state(res_id):
     current_state = r.hgetall(f"state:{res_id}")
     history_raw = r.lrange(f"history:{res_id}", 0, -1)
     history = [json.loads(h) for h in history_raw][::-1]
-    
-    hr = float(current_state.get('hr', 70))
-    spo2 = float(current_state.get('spo2', 98))
-    event_type = current_state.get('event_type', 'normal')
-    env_alert_level = int(current_state.get('alert_level', 0))
 
-    if hr < 30 or hr > 160 or spo2 < 85:
-        return 5, "DANGER VITAL - Constantes critiques", hr, spo2
+    hr = float(current_state.get("hr", 70))
+    spo2 = float(current_state.get("spo2", 98))
+    event_type = current_state.get("event_type", "normal")
+    env_alert_level = int(current_state.get("alert_level", 0))
+
+    now = time.time()
+
+    # Après action médecin : le résident reste stable 3 minutes
+    if r.exists(f"ack_suppressed:{res_id}"):
+        return 0, "", hr, spo2
+
+    # Chute détectée par capteur : passage direct en risque maximal
     if env_alert_level == 4 or "fall" in event_type:
-        return 4, "URGENCE - Chute détectée", hr, spo2
-    if len(history) == 10 and ai.predict_vitals_risk(history) == 1:
-        return 3, "ALERTE IA - Risque de malaise imminent", hr, spo2
-    if spo2 < 93:
-        return 3, f"ALERTE - SpO2 basse ({spo2}%)", hr, spo2
+        cause = classify_fall_cause(hr, spo2)
+
+        if cause == "mechanical":
+            return (
+                5,
+                "RISQUE MAXIMAL - Chute détectée non liée à un malaise, constantes vitales stables",
+                hr,
+                spo2
+            )
+
+        return (
+            5,
+            "RISQUE MAXIMAL - Chute détectée avec suspicion de malaise, constantes vitales anormales",
+            hr,
+            spo2
+        )
+
+    # Comportements environnementaux non vitaux
     if env_alert_level == 2 or "wandering" in event_type:
-        return 2, "ATTENTION - Comportement anormal", hr, spo2
+        return 2, "ATTENTION - Comportement anormal détecté", hr, spo2
+
     if env_alert_level == 1 or "prolonged" in event_type:
         return 1, "INFORMATION - Immobilité prolongée détectée", hr, spo2
 
-    return 0, "", hr, spo2
+    # Gradation progressive des constantes vitales
+    vitals_state = classify_vitals(hr, spo2)
+
+    if vitals_state == "stable":
+        r.delete(f"vitals_abnormal_since:{res_id}")
+        return 0, "", hr, spo2
+
+    abnormal_since = r.get(f"vitals_abnormal_since:{res_id}")
+
+    if not abnormal_since:
+        r.set(f"vitals_abnormal_since:{res_id}", now)
+        return 2, "ATTENTION - Début d'anomalie des constantes vitales", hr, spo2
+
+    elapsed = now - float(abnormal_since)
+
+    if elapsed < VITALS_STEP_SECONDS:
+        return 2, "ATTENTION - Constantes vitales à surveiller", hr, spo2
+
+    if elapsed < VITALS_STEP_SECONDS * 2:
+        return 3, "ALERTE - Dégradation persistante des constantes vitales", hr, spo2
+
+    if elapsed < VITALS_STEP_SECONDS * 3:
+        return 4, "URGENCE - Constantes vitales fortement dégradées", hr, spo2
+
+    return 5, "DANGER VITAL - Constantes critiques persistantes", hr, spo2
+
 
 def escalation_monitor():
-    TIMEOUTS = {2: 10, 3: 5, 4: 3}
+    """
+    L'escalade principale est maintenant gérée par evaluate_resident_state()
+    pour les constantes vitales. Ce monitor sert surtout de sécurité.
+    """
     while True:
         try:
             active_alerts = r.hgetall("active_alerts")
-            now = time.time()
+
             for res_id, alert_data_str in active_alerts.items():
-                alert_data = json.loads(alert_data_str)
-                lvl = alert_data["level"]
-                start_time = alert_data["time"]
-                if lvl >= 5 or lvl not in TIMEOUTS:
+                if r.exists(f"ack_suppressed:{res_id}"):
+                    r.hdel("active_alerts", res_id)
                     continue
-                if now - start_time >= TIMEOUTS[lvl]:
-                    new_lvl = lvl + 1
-                    msg_alert = f"ESCALADE AUTO (Niv {lvl} -> {new_lvl}) : {alert_data['text']}"
-                    print(f"[ESCALADE] L'alerte de {res_id} passe au niveau {new_lvl} !")
-                    alert_data["level"] = new_lvl
-                    alert_data["time"] = now
-                    alert_data["text"] = msg_alert
-                    r.hset("active_alerts", res_id, json.dumps(alert_data))
-                    alert_payload = {
-                        "res_id": res_id,
-                        "level": new_lvl,
-                        "text": msg_alert,
-                        "timestamp": alert_data["timestamp"]
-                    }
-                    client.publish("ehpad/alerts", json.dumps(alert_payload))
+
         except Exception as e:
-            pass
-        time.sleep(1)
+            print(f"Erreur escalation_monitor: {e}")
+
+        time.sleep(5)
+
 
 def on_message(client, userdata, msg):
     try:
         topic = msg.topic
         data = json.loads(msg.payload)
 
+        # Acquittement médecin
         if topic.startswith("ehpad/alerts/ack"):
             res_id = data.get("res_id")
+
             if res_id:
                 r.hdel("active_alerts", res_id)
-                print(f"[ACK] Alerte acquittée pour {res_id}. Chronomètre stoppé.")
+                r.delete(f"last_alert_time:{res_id}")
+                r.delete(f"vitals_abnormal_since:{res_id}")
+
+                r.hset(f"state:{res_id}", "event_type", "normal")
+                r.hset(f"state:{res_id}", "alert_level", 0)
+
+                r.setex(
+                    f"ack_suppressed:{res_id}",
+                    ACK_SUPPRESSION_SECONDS,
+                    str(time.time())
+                )
+
+                print(
+                    f"[ACK] Action médecin réalisée pour {res_id}. "
+                    f"Retour stable pendant {ACK_SUPPRESSION_SECONDS}s."
+                )
+
             return
 
-        parts = topic.split('/')
+        parts = topic.split("/")
         if len(parts) < 4:
             return
 
@@ -124,44 +217,60 @@ def on_message(client, userdata, msg):
         msg_type = parts[3]
 
         if msg_type == "vitals":
-            r.hset(f"state:{res_id}", "hr", data.get('heart_rate', 0))
-            r.hset(f"state:{res_id}", "spo2", data.get('spo2', 0))
+            r.hset(f"state:{res_id}", "hr", data.get("heart_rate", 0))
+            r.hset(f"state:{res_id}", "spo2", data.get("spo2", 0))
             r.lpush(f"history:{res_id}", json.dumps(data))
             r.ltrim(f"history:{res_id}", 0, 9)
+
         elif msg_type == "environment":
-            r.hset(f"state:{res_id}", "event_type", data.get('event_type', 'normal'))
-            r.hset(f"state:{res_id}", "alert_level", data.get('alert_level', 0))
+            r.hset(f"state:{res_id}", "event_type", data.get("event_type", "normal"))
+            r.hset(f"state:{res_id}", "alert_level", data.get("alert_level", 0))
 
         lvl, msg_alert, hr, spo2 = evaluate_resident_state(res_id)
 
-        if lvl > 0:
-            last_alert = r.hget(f"last_alert_time:{res_id}", "time")
-            now = time.time()
-            if not last_alert or (now - float(last_alert) > 10):
-                alert_payload = {
-                    "res_id": res_id,
-                    "level": lvl,
-                    "text": msg_alert,
-                    "timestamp": data.get("timestamp", "")
-                }
-                if lvl >= 4:
-                    print(f"[*] Demande de rapport LLM Mistral pour {res_id}...")
-                    alert_payload["llm_report"] = generate_medical_report(res_id, msg_alert, hr, spo2)
-                client.publish("ehpad/alerts", json.dumps(alert_payload))
-                r.hset(f"last_alert_time:{res_id}", "time", now)
-                if lvl in [2, 3, 4]:
-                    r.hset("active_alerts", res_id, json.dumps({
-                        "level": lvl,
-                        "time": now,
-                        "text": msg_alert,
-                        "timestamp": alert_payload["timestamp"]
-                    }))
-                print(f"[NIVEAU {lvl}] Alerte publiée pour {res_id} : {msg_alert}")
+        if lvl <= 0:
+            return
+
+        now = time.time()
+        last_alert = r.hget(f"last_alert_time:{res_id}", "time")
+
+        if last_alert and now - float(last_alert) < ALERT_COOLDOWN_SECONDS:
+            return
+
+        alert_payload = {
+            "res_id": res_id,
+            "level": lvl,
+            "text": msg_alert,
+            "timestamp": data.get("timestamp", "")
+        }
+
+        if lvl >= 4:
+            print(f"[*] Demande de rapport LLM Mistral pour {res_id}...")
+            alert_payload["llm_report"] = generate_medical_report(
+                res_id,
+                msg_alert,
+                hr,
+                spo2
+            )
+
+        client.publish("ehpad/alerts", json.dumps(alert_payload))
+        r.hset(f"last_alert_time:{res_id}", "time", now)
+
+        if lvl in [2, 3, 4, 5]:
+            r.hset("active_alerts", res_id, json.dumps({
+                "level": lvl,
+                "time": now,
+                "text": msg_alert,
+                "timestamp": alert_payload["timestamp"]
+            }))
+
+        print(f"[NIVEAU {lvl}] Alerte publiée pour {res_id} : {msg_alert}")
 
     except Exception as e:
         print(f"Erreur processing: {e}")
 
-# Initialisation
+
+# Initialisation MQTT
 client = mqtt_client.Client(CallbackAPIVersion.VERSION1, "Backend_IA")
 client.on_message = on_message
 
@@ -180,5 +289,5 @@ client.subscribe("ehpad/alerts/ack")
 escalation_thread = threading.Thread(target=escalation_monitor, daemon=True)
 escalation_thread.start()
 
-print("[*] IA Processor prêt, Escalade activée, et en écoute...")
+print("[*] IA Processor prêt : chute mécanique, gradation vitaux, ACK 3 min activés.")
 client.loop_forever()
