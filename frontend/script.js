@@ -41,22 +41,18 @@ async function doLogin() {
         }
 
         const data = await resp.json();
-        localStorage.setItem('ehpad_token', data.access_token);
+        localStorage.setItem('ehpad_token', data.token);
         localStorage.setItem('ehpad_role',  data.role);
         localStorage.setItem('ehpad_name',  data.name);
 
         document.getElementById('login').style.display = 'none';
-        document.getElementById('shell').classList.add('in');
 
         if (data.role === 'family') {
-            // Masquer les éléments inutiles pour la famille
-            document.querySelector('.sidebar').style.display   = 'none';
-            document.querySelector('.topbar').style.display    = 'none';
-            document.querySelector('.stats-row').style.display = 'none';
-            document.getElementById('view-grid').style.display = 'none';
-            document.getElementById('view-family').style.display = 'block';
-            loadFamilyView(data.access_token);
+            // Vue famille plein écran, totalement indépendante du shell staff
+            document.getElementById('view-family').style.display = 'flex';
+            loadFamilyView(data.token);
         } else {
+            document.getElementById('shell').classList.add('in');
             const initials = data.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
             document.getElementById('user-init').textContent = initials;
             loadResidents().then(() => initMQTT());
@@ -70,10 +66,10 @@ async function doLogin() {
 
 // --- 2. VUE FAMILLE ---
 const REL_FR = {
-    daughter: 'Fille', son: 'Fils', granddaughter: 'Petite-fille',
-    grandson: 'Petit-fils', wife: 'Épouse', husband: 'Époux',
-    sister: 'Sœur', brother: 'Frère', niece: 'Nièce', nephew: 'Neveu',
-    friend: 'Ami(e)', other: 'Proche'
+    daughter:'Fille', son:'Fils', granddaughter:'Petite-fille',
+    grandson:'Petit-fils', wife:'Épouse', husband:'Époux',
+    sister:'Sœur', brother:'Frère', niece:'Nièce', nephew:'Neveu',
+    friend:'Ami(e)', other:'Proche'
 };
 
 async function loadFamilyView(token) {
@@ -85,20 +81,19 @@ async function loadFamilyView(token) {
         const r = await resp.json();
 
         familyResidentId = r.id;
-        const name  = localStorage.getItem('ehpad_name') || '';
-        const relRaw = r.relationship || 'other';
-        const relFr  = REL_FR[relRaw] || relRaw;
 
         // Header
-        document.getElementById('fam-greeting').textContent = `Bonjour, ${name.split(' ')[0]}`;
+        const prenom = (localStorage.getItem('ehpad_name') || '').split(' ')[0];
+        const relFr  = REL_FR[r.relationship] || r.relationship || 'Proche';
+        document.getElementById('fam-greeting').textContent = `Bonjour, ${prenom}`;
         document.getElementById('fam-relation').textContent  = `${relFr} — Chambre ${r.chambre}`;
 
         updateFamilyVitals(r);
-        initMQTTFamily(r.id);
+        initMQTTFamily(r.id, r.chambre);
 
     } catch (e) {
         document.getElementById('view-family').innerHTML =
-            '<p style="color:var(--danger); padding:40px; text-align:center; font-family:var(--mono);">Impossible de charger les données de votre proche.</p>';
+            '<p style="color:var(--danger);padding:60px;text-align:center;font-family:var(--mono);">Impossible de charger les données de votre proche.</p>';
     }
 }
 
@@ -110,35 +105,31 @@ function updateFamilyVitals(r) {
     document.getElementById('fam-ox').innerHTML  = `${r.spo2 ?? '—'}<span class="fam-unit">%</span>`;
     document.getElementById('fam-tmp').innerHTML = `${r.temperature ?? '—'}<span class="fam-unit">°C</span>`;
 
-    // État général
     const stateEl = document.getElementById('fam-status');
-    stateEl.textContent  = LABELS[status];
-    stateEl.style.color  = COLORS[status];
+    stateEl.textContent = LABELS[status];
+    stateEl.style.color = COLORS[status];
 
-    // Badge
     const tag = document.getElementById('fam-tag');
     tag.textContent = LABELS[status];
     tag.className   = `fam-status-badge ${TAG_CLS[status]}`;
 
-    // Barre colorée
     const bar = document.getElementById('fam-status-bar');
     bar.className = `fam-status-bar bar-${status}`;
 
-    // Timestamp
-    const now = new Date().toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    const now = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
     document.getElementById('fam-last-update').textContent = `Dernière mise à jour : ${now}`;
 }
 
-function initMQTTFamily(resId) {
+function initMQTTFamily(resId, chambre) {
     mqttClient = new Paho.MQTT.Client(MQTT_HOST, MQTT_PORT, CLIENT_ID);
-    mqttClient.onConnectionLost = () => setTimeout(() => initMQTTFamily(resId), 5000);
+    mqttClient.onConnectionLost = () => setTimeout(() => initMQTTFamily(resId, chambre), 5000);
     mqttClient.onMessageArrived = (message) => {
         const topic = message.destinationName;
         let data;
         try { data = JSON.parse(message.payloadString); } catch { return; }
         if (topic.includes(`/residents/${resId}/vitals`)) {
             updateFamilyVitals({
-                chambre:     document.getElementById('fam-room').textContent,
+                chambre:     chambre,
                 heart_rate:  data.heart_rate,
                 spo2:        data.spo2,
                 temperature: data.temperature,
@@ -148,9 +139,21 @@ function initMQTTFamily(resId) {
     };
     mqttClient.connect({
         onSuccess: () => mqttClient.subscribe(`ehpad/residents/${resId}/vitals`),
-        onFailure: () => setTimeout(() => initMQTTFamily(resId), 5000),
+        onFailure: () => setTimeout(() => initMQTTFamily(resId, chambre), 5000),
         useSSL: false
     });
+}
+
+function doLogout() {
+    localStorage.removeItem('ehpad_token');
+    localStorage.removeItem('ehpad_role');
+    localStorage.removeItem('ehpad_name');
+    if (mqttClient) { try { mqttClient.disconnect(); } catch(e){} }
+    document.getElementById('view-family').style.display = 'none';
+    document.getElementById('shell').classList.remove('in');
+    document.getElementById('login').style.display = 'flex';
+    document.getElementById('uid').value = '';
+    document.getElementById('pin').value = '';
 }
 
 // --- 3. CHARGEMENT RÉSIDENTS (SOIGNANTS) ---

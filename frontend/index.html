@@ -22,6 +22,65 @@
   </div>
 </div>
 
+<!-- ═══ VUE FAMILLE — plein écran, hors #shell ═══ -->
+<div id="view-family">
+  <div class="fam-header">
+    <div class="fam-header-left">
+      <div class="fam-logo">S+</div>
+      <div>
+        <div class="fam-greeting" id="fam-greeting">Bonjour —</div>
+        <div class="fam-subtitle" id="fam-relation">Accès famille</div>
+      </div>
+    </div>
+    <button class="fam-logout" onclick="doLogout()">DÉCONNEXION →</button>
+  </div>
+  <div class="fam-body">
+    <div class="fam-card">
+      <div class="fam-card-top">
+        <div>
+          <div class="fam-card-label">VOTRE PROCHE — CHAMBRE</div>
+          <div class="fam-room-num" id="fam-room">—</div>
+        </div>
+        <span id="fam-tag" class="fam-status-badge tag-stable">STABLE</span>
+      </div>
+      <div class="fam-status-bar" id="fam-status-bar"></div>
+      <div class="fam-vitals">
+        <div class="fam-vital-box">
+          <div class="fam-vb-icon">♥</div>
+          <div class="fam-vb-label">POULS</div>
+          <div class="fam-vb-val" id="fam-hr">—<span class="fam-unit">bpm</span></div>
+        </div>
+        <div class="fam-vital-box">
+          <div class="fam-vb-icon">○</div>
+          <div class="fam-vb-label">SATURATION O₂</div>
+          <div class="fam-vb-val" id="fam-ox">—<span class="fam-unit">%</span></div>
+        </div>
+        <div class="fam-vital-box">
+          <div class="fam-vb-icon">◈</div>
+          <div class="fam-vb-label">TEMPÉRATURE</div>
+          <div class="fam-vb-val" id="fam-tmp">—<span class="fam-unit">°C</span></div>
+        </div>
+      </div>
+      <div class="fam-state-row">
+        <div class="fam-state-label">ÉTAT GÉNÉRAL</div>
+        <div class="fam-state-val" id="fam-status">—</div>
+      </div>
+      <div class="fam-update-row">
+        <span class="fam-live-dot"></span>
+        <span id="fam-last-update">En attente de données…</span>
+      </div>
+      <div class="fam-info-box">
+        <div class="fam-info-icon">ℹ</div>
+        <div>Les constantes vitales sont surveillées en continu par notre équipe soignante. En cas d'anomalie, le personnel est immédiatement alerté.</div>
+      </div>
+    </div>
+    <div class="fam-contact">
+      <span>Une question ? Contactez l'unité de soins :</span>
+      <strong>Poste interne 3001</strong>
+    </div>
+  </div>
+</div>
+
 <div id="shell">
   <aside class="sidebar">
     <div class="sb-logo">S+</div>
@@ -132,29 +191,6 @@
       </div>
     </div>
 
-    <!-- VUE FAMILLE -->
-    <div id="view-family" style="display:none; padding:20px; max-width:600px; margin:0 auto;">
-      <div class="section-label" style="margin-bottom:16px;">SUIVI DE VOTRE PROCHE</div>
-      <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:24px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-          <div>
-            <div style="font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:2px;">CHAMBRE</div>
-            <div style="font-family:var(--mono); font-size:28px; font-weight:700;" id="fam-room">—</div>
-          </div>
-          <span id="fam-tag" class="pcard-tag tag-stable">STABLE</span>
-        </div>
-        <div class="vitals-grid" style="margin-bottom:20px;">
-          <div class="vital-box"><div class="vb-label">POULS</div><div class="vb-val" id="fam-hr">—<span class="vb-unit">bpm</span></div></div>
-          <div class="vital-box"><div class="vb-label">SpO₂</div><div class="vb-val" id="fam-ox">—<span class="vb-unit">%</span></div></div>
-          <div class="vital-box"><div class="vb-label">TEMPÉRATURE</div><div class="vb-val" id="fam-tmp">—<span class="vb-unit">°C</span></div></div>
-          <div class="vital-box"><div class="vb-label">ÉTAT GÉNÉRAL</div><div class="vb-val" id="fam-status" style="font-size:14px;">—</div></div>
-        </div>
-        <div style="background:var(--surface2); border-radius:4px; padding:12px; font-family:var(--mono); font-size:11px; color:var(--muted);">
-          ℹ️ Les constantes sont mises à jour en temps réel. En cas d'urgence, le personnel soignant est automatiquement alerté.
-        </div>
-      </div>
-    </div>
-
   </div>
 </div>
 
@@ -184,14 +220,6 @@
       <div class="info-grid">
         <div class="info-box"><div class="ib-label">CHAMBRE</div><div class="ib-val" id="p-room-info">—</div></div>
         <div class="info-box"><div class="ib-label">MÉDECIN RÉFÉRENT</div><div class="ib-val" id="p-doc">—</div></div>
-      </div>
-    </div>
-    <div>
-      <div class="section-label">ANALYSE IA</div>
-      <div class="ai-prediction-box">
-        <div class="ai-level-val" id="ai-level">AUCUNE ALERTE</div>
-        <div class="ai-text-val" id="ai-text">—</div>
-        <div class="ai-report-display" id="ai-report"><span style="color:var(--muted)">Surveillance normale</span></div>
       </div>
     </div>
     <div class="notes-section">
