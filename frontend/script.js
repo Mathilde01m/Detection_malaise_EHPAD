@@ -167,20 +167,21 @@ async function loadResidents() {
         const data = await resp.json();
 
         PATIENTS = data.map(r => ({
-            id:       r.id,
-            room:     String(r.chambre),
-            name:     r.nom || `Résident ${r.id}`,
-            age:      '--',
-            status:   riskToStatus(r.risk_score),
-            hr:       r.heart_rate  ?? 0,
-            ox:       r.spo2        ?? 0,
-            bp:       r.tension     ?? '--/--',
-            tmp:      r.temperature ?? '--',
-            diag:     r.pathologie  ?? '--',
-            history:  [],
-            aiLevel:  0,
-            aiText:   '',
-            aiReport: ''
+            id:        r.id,
+            room:      String(r.chambre),
+            name:      r.nom || `Résident ${r.id}`,
+            age:       '--',
+            status:    riskToStatus(r.risk_score),
+            hr:        r.heart_rate  ?? 0,
+            ox:        r.spo2        ?? 0,
+            bp:        r.tension     ?? '--/--',
+            tmp:       r.temperature ?? '--',
+            diag:      r.pathologie  ?? '--',
+            history:   [],
+            aiLevel:   0,
+            aiText:    '',
+            aiReport:  '',
+            eventType: 'normal'
         }));
 
         renderGrid(PATIENTS);
@@ -217,6 +218,9 @@ function initMQTT() {
         if (topic.includes('/vitals')) {
             const resId = topic.split('/')[2];
             updatePatientVitals(resId, data);
+        } else if (topic.includes('/environment')) {
+            const resId = topic.split('/')[2];
+            updatePatientEvent(resId, data);
         } else if (topic === 'ehpad/alerts') {
             handleIncomingAlert(data);
         }
@@ -226,6 +230,7 @@ function initMQTT() {
         onSuccess: () => {
             console.log('✅ Connecté au broker MQTT');
             mqttClient.subscribe('ehpad/residents/+/vitals');
+            mqttClient.subscribe('ehpad/residents/+/environment');
             mqttClient.subscribe('ehpad/alerts');
         },
         onFailure: (err) => {
@@ -252,6 +257,41 @@ function updatePatientVitals(resId, data) {
     if (currentPatientId === resId) refreshPanelUI(p);
 }
 
+// --- 5b. MISE À JOUR ÉVÉNEMENT ENVIRONNEMENT ---
+const EVENT_LABELS = {
+    'fall':                   { label: '🔴 CHUTE DÉTECTÉE',    cls: 'ev-fall' },
+    'mechanical_fall':        { label: '🔴 CHUTE MÉCANIQUE',   cls: 'ev-fall' },
+    'cardiac_fall':           { label: '🔴 CHUTE CARDIAQUE',   cls: 'ev-fall' },
+    'syncope_fall':           { label: '🔴 SYNCOPE / CHUTE',   cls: 'ev-fall' },
+    'wandering':              { label: '🟠 ERRANCE',            cls: 'ev-warn' },
+    'prolonged_inactivity':   { label: '🟡 INACTIVITÉ',         cls: 'ev-info' },
+    'prolonged':              { label: '🟡 INACTIVITÉ',         cls: 'ev-info' },
+    'agitation':              { label: '🟠 AGITATION',          cls: 'ev-warn' },
+    'normal':                 { label: '',                      cls: ''        },
+};
+
+function getEventInfo(eventType) {
+    if (!eventType || eventType === 'normal') return null;
+    if (EVENT_LABELS[eventType]) return EVENT_LABELS[eventType];
+    if (eventType.includes('fall')) return EVENT_LABELS['fall'];
+    if (eventType.includes('wander')) return EVENT_LABELS['wandering'];
+    if (eventType.includes('prolonged') || eventType.includes('immob')) return EVENT_LABELS['prolonged_inactivity'];
+    return { label: `⚠️ ${eventType.toUpperCase()}`, cls: 'ev-warn' };
+}
+
+function updatePatientEvent(resId, data) {
+    const p = PATIENTS.find(pt => pt.id === resId);
+    if (!p) return;
+    const et = data.event_type || 'normal';
+    if (data.fall_detected === true || data.fall_detected === 'true') {
+        p.eventType = 'fall';
+    } else {
+        p.eventType = et;
+    }
+    renderGrid(PATIENTS);
+    if (currentPatientId === resId) refreshPanelUI(p);
+}
+
 // --- 6. ALERTES IA ---
 function handleIncomingAlert(alert) {
     const p = PATIENTS.find(pt => pt.id === alert.res_id);
@@ -263,6 +303,8 @@ function handleIncomingAlert(alert) {
     p.aiLevel = alert.level;
     p.aiText  = alert.text;
     if (alert.llm_report) p.aiReport = alert.llm_report;
+    if (alert.event_type && alert.event_type !== 'normal') p.eventType = alert.event_type;
+    if (alert.fall_type) p.eventType = 'fall';
 
     const timeStr = new Date().toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
     let log = `⚠️ ${alert.text}`;
@@ -287,13 +329,16 @@ function renderGrid(pts) {
         return;
     }
 
-    grid.innerHTML = pts.map(p => `
+    grid.innerHTML = pts.map(p => {
+        const evInfo = getEventInfo(p.eventType);
+        return `
         <div class="pcard ${p.status}" onclick='openPanelById("${p.id}")'>
             <div class="pcard-top">
                 <div class="pcard-room">${p.room}</div>
                 <span class="pcard-tag ${TAG_CLS[p.status]}">${LABELS[p.status]}</span>
             </div>
             <div class="pcard-name">${p.name}</div>
+            ${evInfo ? `<div class="pcard-event ${evInfo.cls}">${evInfo.label}</div>` : ''}
             <div class="pcard-vitals">
                 <div class="pv"><div class="pv-label">HR</div><div class="pv-val ${PV_CLS[p.status]}">${p.hr}</div></div>
                 <div class="pv"><div class="pv-label">SpO2</div><div class="pv-val ${PV_CLS[p.status]}">${p.ox}%</div></div>
@@ -303,8 +348,8 @@ function renderGrid(pts) {
                 <span class="ai-badge">IA · NIV.${p.aiLevel}</span>
                 <span class="ai-card-text">${p.aiText}</span>
             </div>` : ''}
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 // --- 8. COMPTEURS ---
