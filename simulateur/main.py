@@ -13,10 +13,15 @@ CSV_PATH = "data/données_résidents_ephad.csv"
 # --- CORRECTIONS ICI ---
 MQTT_BROKER_HOST = "mqtt-broker"  # Le nom du service Docker !
 MQTT_BROKER_PORT = 1883
-MQTT_QOS = 0  # QoS 0 pour alléger le réseau MQTT (Scalabilité)
-# -----------------------
- 
- 
+MQTT_QOS = 0
+
+TICK_DURATION_SECONDS = 0.1
+STABLE_DURATION_TICKS = 30  # 5 minutes = 300 ticks de 1 seconde
+
+doctor_message_sent_ticks = {}
+doctor_treatment_ticks = {}
+
+
 def build_topic(resident_id: str) -> str:
     return f"ehpad/residents/{resident_id}/vitals"
  
