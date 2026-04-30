@@ -248,13 +248,40 @@ function updatePatientVitals(resId, data) {
 
     p.hr  = data.heart_rate;
     p.ox  = data.spo2;
-    p.bp  = `${data.systolic_bp}/${data.diastolic_bp}`;
+
+    if (data.systolic_bp !== undefined && data.diastolic_bp !== undefined) {
+        p.bp = `${data.systolic_bp}/${data.diastolic_bp}`;
+    } else if (data.tension !== undefined) {
+        p.bp = data.tension;
+    } else if (data.blood_pressure !== undefined) {
+        p.bp = data.blood_pressure;
+    } else {
+        p.bp = p.bp || '--/--';
+    }
+
     p.tmp = data.temperature;
+
+    const alertLevel = data.alert_level ?? 0;
+    const alertText  = getAlertTextFromVitals(data);
+
+    if (alertLevel > 0) {
+        p.status  = alertLevelToStatus(alertLevel);
+        p.aiLevel = alertLevel;
+        p.aiText  = alertText;
+
+        if (data.ai_risk_score !== undefined) {
+            p.aiReport = `Score IA : ${data.ai_risk_score}`;
+        }
+    }
 
     renderGrid(PATIENTS);
     updateCounters();
     updateMapStatus();
-    if (currentPatientId === resId) refreshPanelUI(p);
+
+    if (currentPatientId === resId) {
+        refreshPanelUI(p);
+        refreshAIPanel(p);
+    }
 }
 
 // --- 5b. MISE À JOUR ÉVÉNEMENT ENVIRONNEMENT ---
