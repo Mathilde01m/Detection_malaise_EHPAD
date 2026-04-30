@@ -14,10 +14,11 @@
     <div class="login-logo">SYSTÈME ACTIF</div>
     <h1>SANTÉ OS</h1>
     <p>Authentification requise pour accéder à l'unité de soins.</p>
-    <div class="field"><label>IDENTIFIANT</label><input type="text" id="uid" value="Dr. Morel" placeholder="ex: Dr. Morel"></div>
-    <div class="field"><label>CODE PIN</label><input type="password" id="pin" value="0000" placeholder="••••"></div>
-    <button class="login-btn" onclick="doLogin()">ACCÉDER → UNITÉ NORD</button>
-    <div class="login-hint">identifiant + pin préremplis pour démo</div>
+    <div class="field"><label>EMAIL</label><input type="email" id="uid" placeholder="ex: claire.durand@ehpad.local"></div>
+    <div class="field"><label>MOT DE PASSE</label><input type="password" id="pin" placeholder="••••••••"></div>
+    <div id="login-error" style="color:var(--danger); font-family:var(--mono); font-size:11px; margin-bottom:8px; display:none;">Email ou mot de passe incorrect.</div>
+    <button class="login-btn" onclick="doLogin()">ACCÉDER →</button>
+    <div class="login-hint">Mot de passe démo universel : <b>Demo1234!</b></div>
   </div>
 </div>
 
@@ -59,20 +60,13 @@
     <div id="view-map" style="display:none; padding:20px;">
       <div class="section-label">PLAN TECHNIQUE — SECTEURS A, B, C, D</div>
       <div class="map-container">
-
         <svg viewBox="0 0 1000 600" id="ehpad-map" style="width:100%; height:auto; max-height:70vh;">
-
-          <!-- Poste infirmier central -->
           <circle cx="500" cy="300" r="50" fill="rgba(0,229,160,0.1)" stroke="var(--accent)" stroke-width="2"/>
           <text x="500" y="305" fill="var(--accent)" text-anchor="middle" font-size="12" font-weight="bold" font-family="monospace">POSTE</text>
-
-          <!-- Couloirs -->
           <line x1="500" y1="250" x2="500" y2="170" stroke="var(--border)" stroke-width="4"/>
           <line x1="500" y1="350" x2="500" y2="430" stroke="var(--border)" stroke-width="4"/>
           <line x1="450" y1="300" x2="300" y2="300" stroke="var(--border)" stroke-width="4"/>
           <line x1="550" y1="300" x2="700" y2="300" stroke="var(--border)" stroke-width="4"/>
-
-          <!-- PAVILLON NORD (101-110) -->
           <g transform="translate(300, 20)">
             <rect width="400" height="150" rx="8" fill="rgba(0,229,160,0.03)" stroke="rgba(0,229,160,0.3)" stroke-width="2"/>
             <text x="200" y="25" fill="var(--accent)" text-anchor="middle" font-size="14" font-weight="bold" font-family="monospace" letter-spacing="2">PAVILLON NORD</text>
@@ -87,8 +81,6 @@
             <g id="room-109" class="map-room map-stable" onclick="selectRoom('109')"><rect x="240" y="95" width="55" height="35" rx="4"/><text x="267" y="117" text-anchor="middle" font-size="11">109</text></g>
             <g id="room-110" class="map-room map-stable" onclick="selectRoom('110')"><rect x="310" y="95" width="55" height="35" rx="4"/><text x="337" y="117" text-anchor="middle" font-size="11">110</text></g>
           </g>
-
-          <!-- PAVILLON SUD (201-210) -->
           <g transform="translate(300, 430)">
             <rect width="400" height="150" rx="8" fill="rgba(0,102,255,0.03)" stroke="rgba(0,102,255,0.3)" stroke-width="2"/>
             <text x="200" y="140" fill="var(--accent2)" text-anchor="middle" font-size="14" font-weight="bold" font-family="monospace" letter-spacing="2">PAVILLON SUD</text>
@@ -103,8 +95,6 @@
             <g id="room-209" class="map-room map-stable" onclick="selectRoom('209')"><rect x="240" y="75" width="55" height="35" rx="4"/><text x="267" y="97" text-anchor="middle" font-size="11">209</text></g>
             <g id="room-210" class="map-room map-stable" onclick="selectRoom('210')"><rect x="310" y="75" width="55" height="35" rx="4"/><text x="337" y="97" text-anchor="middle" font-size="11">210</text></g>
           </g>
-
-          <!-- PAVILLON EST (301-310) -->
           <g transform="translate(750, 100)">
             <rect width="210" height="400" rx="8" fill="rgba(255,159,10,0.03)" stroke="rgba(255,159,10,0.3)" stroke-width="2"/>
             <text x="105" y="25" fill="var(--warn)" text-anchor="middle" font-size="14" font-weight="bold" font-family="monospace" letter-spacing="2">PAV. EST</text>
@@ -119,8 +109,6 @@
             <g id="room-309" class="map-room map-stable" onclick="selectRoom('309')"><rect x="15"  y="260" width="55" height="35" rx="4"/><text x="42"  y="282" text-anchor="middle" font-size="11">309</text></g>
             <g id="room-310" class="map-room map-stable" onclick="selectRoom('310')"><rect x="90"  y="260" width="55" height="35" rx="4"/><text x="117" y="282" text-anchor="middle" font-size="11">310</text></g>
           </g>
-
-          <!-- PAVILLON OUEST (401-410) -->
           <g transform="translate(40, 100)">
             <rect width="210" height="400" rx="8" fill="rgba(255,59,48,0.03)" stroke="rgba(255,59,48,0.3)" stroke-width="2"/>
             <text x="105" y="25" fill="var(--danger)" text-anchor="middle" font-size="14" font-weight="bold" font-family="monospace" letter-spacing="2">PAV. OUEST</text>
@@ -135,13 +123,34 @@
             <g id="room-409" class="map-room map-stable" onclick="selectRoom('409')"><rect x="15"  y="260" width="55" height="35" rx="4"/><text x="42"  y="282" text-anchor="middle" font-size="11">409</text></g>
             <g id="room-410" class="map-room map-stable" onclick="selectRoom('410')"><rect x="90"  y="260" width="55" height="35" rx="4"/><text x="117" y="282" text-anchor="middle" font-size="11">410</text></g>
           </g>
-
         </svg>
-
         <div class="map-legend">
           <div class="legend-item"><div class="legend-dot stable"></div>STABLE</div>
           <div class="legend-item"><div class="legend-dot urgent"></div>URGENT</div>
           <div class="legend-item"><div class="legend-dot critical"></div>CRITIQUE (clignote)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VUE FAMILLE -->
+    <div id="view-family" style="display:none; padding:20px; max-width:600px; margin:0 auto;">
+      <div class="section-label" style="margin-bottom:16px;">SUIVI DE VOTRE PROCHE</div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <div>
+            <div style="font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:2px;">CHAMBRE</div>
+            <div style="font-family:var(--mono); font-size:28px; font-weight:700;" id="fam-room">—</div>
+          </div>
+          <span id="fam-tag" class="pcard-tag tag-stable">STABLE</span>
+        </div>
+        <div class="vitals-grid" style="margin-bottom:20px;">
+          <div class="vital-box"><div class="vb-label">POULS</div><div class="vb-val" id="fam-hr">—<span class="vb-unit">bpm</span></div></div>
+          <div class="vital-box"><div class="vb-label">SpO₂</div><div class="vb-val" id="fam-ox">—<span class="vb-unit">%</span></div></div>
+          <div class="vital-box"><div class="vb-label">TEMPÉRATURE</div><div class="vb-val" id="fam-tmp">—<span class="vb-unit">°C</span></div></div>
+          <div class="vital-box"><div class="vb-label">ÉTAT GÉNÉRAL</div><div class="vb-val" id="fam-status" style="font-size:14px;">—</div></div>
+        </div>
+        <div style="background:var(--surface2); border-radius:4px; padding:12px; font-family:var(--mono); font-size:11px; color:var(--muted);">
+          ℹ️ Les constantes sont mises à jour en temps réel. En cas d'urgence, le personnel soignant est automatiquement alerté.
         </div>
       </div>
     </div>
@@ -175,6 +184,14 @@
       <div class="info-grid">
         <div class="info-box"><div class="ib-label">CHAMBRE</div><div class="ib-val" id="p-room-info">—</div></div>
         <div class="info-box"><div class="ib-label">MÉDECIN RÉFÉRENT</div><div class="ib-val" id="p-doc">—</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="section-label">ANALYSE IA</div>
+      <div class="ai-prediction-box">
+        <div class="ai-level-val" id="ai-level">AUCUNE ALERTE</div>
+        <div class="ai-text-val" id="ai-text">—</div>
+        <div class="ai-report-display" id="ai-report"><span style="color:var(--muted)">Surveillance normale</span></div>
       </div>
     </div>
     <div class="notes-section">

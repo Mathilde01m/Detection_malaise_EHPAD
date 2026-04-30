@@ -1,8 +1,8 @@
-paho-mqtt==2.0.0
-redis==5.0.3
-numpy==1.26.4
-pandas==2.2.2
-scikit-learn==1.4.2
-joblib==1.4.0
-tensorflow-cpu==2.16.1
-requests==2.31.0
+paho-mqtt
+redis
+requests
+psycopg2-binary
+numpy
+scikit-learn
+joblib
+tensorflow
