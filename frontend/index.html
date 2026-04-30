@@ -14,10 +14,70 @@
     <div class="login-logo">SYSTÈME ACTIF</div>
     <h1>SANTÉ OS</h1>
     <p>Authentification requise pour accéder à l'unité de soins.</p>
-    <div class="field"><label>IDENTIFIANT</label><input type="text" id="uid" value="Dr. Morel" placeholder="ex: Dr. Morel"></div>
-    <div class="field"><label>CODE PIN</label><input type="password" id="pin" value="0000" placeholder="••••"></div>
-    <button class="login-btn" onclick="doLogin()">ACCÉDER → UNITÉ NORD</button>
-    <div class="login-hint">identifiant + pin préremplis pour démo</div>
+    <div class="field"><label>EMAIL</label><input type="email" id="uid" placeholder="ex: claire.durand@ehpad.local"></div>
+    <div class="field"><label>MOT DE PASSE</label><input type="password" id="pin" placeholder="••••••••"></div>
+    <div id="login-error" style="color:var(--danger); font-family:var(--mono); font-size:11px; margin-bottom:8px; display:none;">Email ou mot de passe incorrect.</div>
+    <button class="login-btn" onclick="doLogin()">ACCÉDER →</button>
+    <div class="login-hint">Mot de passe démo universel : <b>Demo1234!</b></div>
+  </div>
+</div>
+
+<!-- ═══ VUE FAMILLE — plein écran, hors #shell ═══ -->
+<div id="view-family">
+  <div class="fam-header">
+    <div class="fam-header-left">
+      <div class="fam-logo">S+</div>
+      <div>
+        <div class="fam-greeting" id="fam-greeting">Bonjour —</div>
+        <div class="fam-subtitle" id="fam-relation">Accès famille</div>
+      </div>
+    </div>
+    <button class="fam-logout" onclick="doLogout()">DÉCONNEXION →</button>
+  </div>
+  <div class="fam-body">
+    <div class="fam-card">
+      <div class="fam-card-top">
+        <div>
+          <div class="fam-card-label">VOTRE PROCHE — CHAMBRE</div>
+          <div class="fam-room-num" id="fam-room">—</div>
+        </div>
+        <span id="fam-tag" class="fam-status-badge tag-stable">STABLE</span>
+      </div>
+      <div class="fam-status-bar" id="fam-status-bar"></div>
+      <div class="fam-vitals">
+        <div class="fam-vital-box">
+          <div class="fam-vb-icon">♥</div>
+          <div class="fam-vb-label">POULS</div>
+          <div class="fam-vb-val" id="fam-hr">—<span class="fam-unit">bpm</span></div>
+        </div>
+        <div class="fam-vital-box">
+          <div class="fam-vb-icon">○</div>
+          <div class="fam-vb-label">SATURATION O₂</div>
+          <div class="fam-vb-val" id="fam-ox">—<span class="fam-unit">%</span></div>
+        </div>
+        <div class="fam-vital-box">
+          <div class="fam-vb-icon">◈</div>
+          <div class="fam-vb-label">TEMPÉRATURE</div>
+          <div class="fam-vb-val" id="fam-tmp">—<span class="fam-unit">°C</span></div>
+        </div>
+      </div>
+      <div class="fam-state-row">
+        <div class="fam-state-label">ÉTAT GÉNÉRAL</div>
+        <div class="fam-state-val" id="fam-status">—</div>
+      </div>
+      <div class="fam-update-row">
+        <span class="fam-live-dot"></span>
+        <span id="fam-last-update">En attente de données…</span>
+      </div>
+      <div class="fam-info-box">
+        <div class="fam-info-icon">ℹ</div>
+        <div>Les constantes vitales sont surveillées en continu par notre équipe soignante. En cas d'anomalie, le personnel est immédiatement alerté.</div>
+      </div>
+    </div>
+    <div class="fam-contact">
+      <span>Une question ? Contactez l'unité de soins :</span>
+      <strong>Poste interne 3001</strong>
+    </div>
   </div>
 </div>
 
