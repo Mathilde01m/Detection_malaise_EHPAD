@@ -10,12 +10,20 @@ def generate_environment_data(room: RoomMapping, tick: int) -> dict:
         "zone": room.zone,
         "floor": room.floor,
         "timestamp": datetime.utcnow().isoformat() + "Z",
+
         "bed_sensor": generate_bed_sensor(room, tick),
         "room_motion": generate_room_motion(room, tick),
         "corridor_motion": generate_corridor_motion(room, tick),
         "door_sensor": generate_door_sensor(room, tick),
         "bathroom_motion": generate_bathroom_motion(room, tick),
         "common_area_presence": generate_common_area_presence(room, tick),
+
+        "fall_detected": False,
+        "fall_type": None,
+        "fall_location": None,
+        "fall_cause": None,
+        "fall_related_to_malaise": False,
+
         "event_type": "environment_normal",
         "alert_level": 0,
     }
@@ -77,6 +85,12 @@ def apply_environment_scenarios(data: dict, tick: int) -> dict:
     if resident_id == "R11":
         return fall_in_corridor_scenario(data, tick)
 
+    if resident_id == "R21":
+        return fall_after_cardiac_malaise_environment(data, tick)
+
+    if resident_id == "R25":
+        return fall_after_syncope_environment(data, tick)
+
     return data
 
 
@@ -123,7 +137,16 @@ def fall_in_room_scenario(data: dict, tick: int) -> dict:
         data["room_motion"] = False
         data["corridor_motion"] = False
         data["door_sensor"] = "closed"
-        data["event_type"] = "fall_detected_in_room"
+        data["bathroom_motion"] = False
+        data["common_area_presence"] = False
+
+        data["fall_detected"] = True
+        data["fall_type"] = "mechanical"
+        data["fall_location"] = "room"
+        data["fall_cause"] = "chute mécanique probable en chambre"
+        data["fall_related_to_malaise"] = False
+
+        data["event_type"] = "mechanical_fall"
         data["alert_level"] = 4
 
     return data
@@ -135,7 +158,58 @@ def fall_in_corridor_scenario(data: dict, tick: int) -> dict:
         data["room_motion"] = False
         data["corridor_motion"] = False
         data["door_sensor"] = "opened"
-        data["event_type"] = "fall_detected_in_corridor"
+        data["bathroom_motion"] = False
+        data["common_area_presence"] = False
+
+        data["fall_detected"] = True
+        data["fall_type"] = "balance_disorder"
+        data["fall_location"] = "corridor"
+        data["fall_cause"] = "trouble de l'équilibre lié à Parkinson"
+        data["fall_related_to_malaise"] = False
+
+        data["event_type"] = "parkinson_balance_fall"
+        data["alert_level"] = 4
+
+    return data
+
+
+def fall_after_cardiac_malaise_environment(data: dict, tick: int) -> dict:
+    if tick >= 90:
+        data["bed_sensor"] = False
+        data["room_motion"] = False
+        data["corridor_motion"] = False
+        data["door_sensor"] = "closed"
+        data["bathroom_motion"] = False
+        data["common_area_presence"] = False
+
+        data["fall_detected"] = True
+        data["fall_type"] = "malaise_cardiaque"
+        data["fall_location"] = "room"
+        data["fall_cause"] = "malaise cardiaque probable"
+        data["fall_related_to_malaise"] = True
+
+        data["event_type"] = "fall_after_cardiac_malaise"
+        data["alert_level"] = 4
+
+    return data
+
+
+def fall_after_syncope_environment(data: dict, tick: int) -> dict:
+    if tick >= 90:
+        data["bed_sensor"] = False
+        data["room_motion"] = False
+        data["corridor_motion"] = False
+        data["door_sensor"] = "closed"
+        data["bathroom_motion"] = False
+        data["common_area_presence"] = False
+
+        data["fall_detected"] = True
+        data["fall_type"] = "syncope_hypotension"
+        data["fall_location"] = "room"
+        data["fall_cause"] = "syncope ou hypotension probable"
+        data["fall_related_to_malaise"] = True
+
+        data["event_type"] = "fall_after_syncope"
         data["alert_level"] = 4
 
     return data
