@@ -1,4 +1,3 @@
-// --- CONFIGURATION ---
 const MQTT_HOST = window.location.hostname;
 const MQTT_PORT = 9001;
 const CLIENT_ID = "SanteOS_Front_" + Math.random().toString(16).substr(2, 5);
@@ -240,12 +239,15 @@ function initMQTT() {
 function updatePatientVitals(resId, data) {
     const p = PATIENTS.find(pt => pt.id === resId);
     if (!p) return;
- 
-    p.hr  = data.heart_rate;
-    p.ox  = data.spo2;
-    p.bp  = `${data.systolic_bp}/${data.diastolic_bp}`;
-    p.tmp = data.temperature;
- 
+
+    // Mise à jour sécurisée (si le champ existe dans le message MQTT)
+    if (data.heart_rate !== undefined) p.hr = data.heart_rate;
+    if (data.spo2 !== undefined) p.ox = data.spo2;
+    if (data.temperature !== undefined) p.tmp = data.temperature;
+    if (data.systolic_bp !== undefined && data.diastolic_bp !== undefined) {
+        p.bp = `${data.systolic_bp}/${data.diastolic_bp}`;
+    }
+
     renderGrid(PATIENTS);
     updateCounters();
     updateMapStatus();

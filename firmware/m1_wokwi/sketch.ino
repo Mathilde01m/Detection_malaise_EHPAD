@@ -15,7 +15,7 @@ const int   WIFI_CHANNEL  = 6;
 
 // Identifiants EHPAD
 const char* TEAM_ID     = "Lyon1"; 
-const char* RESIDENT_ID = "P001";     
+const char* RESIDENT_ID = "R8";     
 const char* DEVICE_ID   = "esp32-01";
 
 #if USE_TLS
