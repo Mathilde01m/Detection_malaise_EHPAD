@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "author": "Digi5 - Module 1",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-mpu6050", "id": "imu1", "top": -140, "left": 170, "attrs": {} },
+    { "type": "wokwi-pushbutton", "id": "btnSos", "top": 60, "left": 250, "attrs": { "color": "red", "label": "SOS" } },
+    { "type": "wokwi-buzzer", "id": "bz1", "top": 150, "left": 260, "attrs": { "volume": "0.1" } },
+    { "type": "wokwi-potentiometer", "id": "potHr", "top": 40, "left": -180, "attrs": { "value": "380" } }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "imu1:VCC", "esp:3V3", "red", [] ],
+    [ "imu1:GND", "esp:GND.2", "black", [] ],
+    [ "imu1:SDA", "esp:21", "green", [] ],
+    [ "imu1:SCL", "esp:22", "blue", [] ],
+    [ "btnSos:1.l", "esp:18", "orange", [] ],
+    [ "btnSos:2.l", "esp:GND.3", "black", [] ],
+    [ "bz1:2", "esp:19", "purple", [] ],
+    [ "bz1:1", "esp:GND.3", "black", [] ],
+    [ "potHr:VCC", "esp:3V3", "red", [] ],
+    [ "potHr:GND", "esp:GND.1", "black", [] ],
+    [ "potHr:SIG", "esp:34", "gold", [] ]
+  ],
+  "dependencies": {}
+}
