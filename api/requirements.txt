@@ -5,3 +5,4 @@ sqlalchemy
 redis
 python-jose[cryptography]
 passlib[bcrypt]
+psycopg[binary]

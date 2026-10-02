@@ -1,7 +1,3 @@
-/*
-  Digi5 - Module 1 - TP « Du simulateur Python au firmware ESP32 (Wokwi) »
-  ADAPTÉ POUR L'ARCHITECTURE EHPAD (Option A)
-*/
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <Wire.h>
@@ -18,8 +14,8 @@ const char* WIFI_PASSWORD = "";
 const int   WIFI_CHANNEL  = 6;
 
 // Identifiants EHPAD
-const char* TEAM_ID     = "equipe01"; // TODO: Mettre votre numéro d'équipe
-const char* RESIDENT_ID = "P001";     // ID du résident simulé
+const char* TEAM_ID     = "Lyon1"; 
+const char* RESIDENT_ID = "P001";     
 const char* DEVICE_ID   = "esp32-01";
 
 #if USE_TLS
