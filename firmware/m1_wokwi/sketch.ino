@@ -5,8 +5,7 @@
 #include <PubSubClient.h>
 
 // ======================= 1. CONFIGURATION À ADAPTER =======================
-#define USE_TLS 0  // 0 : broker.hivemq.com:1883 (public, non chiffré)
-                   // 1 : votre cluster HiveMQ Cloud:8883 (TLS)
+#define USE_TLS 0  // 0 : Broker local non chiffré / 1 : TLS actif
 
 // Wi-Fi : "Wokwi-GUEST" dans le simulateur
 const char* WIFI_SSID     = "Wokwi-GUEST";
@@ -30,8 +29,8 @@ COLLEZ ICI LE CERTIFICAT RACINE (format PEM)
 )PEM";
 WiFiClientSecure netClient;
 #else
-// Broker public pour Wokwi
-const char*    MQTT_HOST = "broker.hivemq.com";
+// Broker local Docker (IP de votre machine)
+const char*    MQTT_HOST = "192.168.1.36";
 const uint16_t MQTT_PORT = 1883;
 const char*    MQTT_USER = nullptr;
 const char*    MQTT_PASS = nullptr;
@@ -191,7 +190,7 @@ void publishVitals() {
 // ======================= 9. CAPTEURS LOCAUX =======================
 void readImu() {
   if (!imuOk) return;
-  mpuReadAccel();
+  mupReadAccel();
   float norm = sqrt(ax * ax + ay * ay + az * az);
   if (norm > peakG) peakG = norm;
 
@@ -226,10 +225,9 @@ void setup() {
   Serial.println(imuOk ? "MPU-6050 détecté (0x68)"
                        : "MPU-6050 introuvable : vérifiez SDA=21, SCL=22, VCC=3V3, GND");
 
-  // --- ADAPTATION DES TOPICS POUR L'ARCHITECTURE EHPAD ---
   String base = String("ehpad/residents/") + RESIDENT_ID;
   topicVitals = base + "/vitals";
-  topicAlerts = "ehpad/alerts"; // Topic global des alertes
+  topicAlerts = "ehpad/alerts"; 
   topicStatus = String("ehpad/device/") + DEVICE_ID + "/status";
   
   clientId = String("digi5-") + TEAM_ID + "-" + DEVICE_ID + "-" + String((uint32_t)random(0xFFFF), HEX);
